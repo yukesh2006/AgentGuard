@@ -78,7 +78,14 @@ ACTION_CATALOG: Dict[str, ActionDefinition] = {
         is_destructive=False,
         is_external=False,
     ),
+    "read_credentials_file": ActionDefinition(
+        description="Read a credentials or authentication secrets file",
+        category="credential_access",
+        is_destructive=False,
+        is_external=False,
+    ),
 }
+
 
 
 def is_known_action(action_name: str) -> bool:

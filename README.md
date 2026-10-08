@@ -20,20 +20,20 @@ AgentGuard intercepts proposed actions and evaluates:
 * **Previous behavior** (Session trajectory and anomaly trends)
 * **Intent-action consistency** (Semantic alignment between user prompt and tool execution)
 
-Based on these dimensions, AgentGuard will eventually produce one of three decisions:
+Based on these dimensions, AgentGuard produces one of three enforceable decisions:
 
 * **ALLOW** — Action is verified, safe, and aligned with user intent.
-* **REVIEW** — Action contains moderate risk or borderline ambiguity, triggering human-in-the-loop verification.
-* **BLOCK** — Action violates security policies, presents severe risk, or is misaligned with the intended task.
+* **REVIEW** — Action contains moderate risk or contextual ambiguity, requiring human-in-the-loop verification before execution.
+* **BLOCK** — Action violates security policies, presents severe risk, or diverges from the user's intended task.
 
 ---
 
 ## Current Phase
 
-**Phase 3 — Behavioral Anomaly Detection & Risk Assessment**
+**Phase 4 — Context-Aware Policy Decision Engine**
 
-> **Current Status**: The behavioral intelligence and multi-factor risk assessment engines are active. AgentGuard evaluates historical action trajectories using an unsupervised `IsolationForest` model, classifies target resource sensitivities, aggregates contextual signals, and produces transparent 0–100 normalized risk scores with plain-language explanations via `POST /risk-assessment`.  
-> *Note: Deterministic ALLOW/REVIEW/BLOCK policy enforcement rules and human-in-the-loop controls belong to Phase 4. AgentGuard currently performs passive risk analysis and does NOT execute any agent actions.*
+> **Current Status**: The Policy Decision Engine is active. AgentGuard evaluates user intent, action semantics, resource sensitivity, behavioral anomaly vectors, and composite risk scores to enforce `ALLOW`, `REVIEW`, and `BLOCK` policy decisions via `POST /policy-decision` (and alias `POST /decision`).  
+> *Note: AgentGuard performs active security governance analysis and does NOT execute real external commands, file deletions, or network uploads.*
 
 ---
 
@@ -56,11 +56,21 @@ AgentGuard/
 │   ├── app/                  # Application source code
 │   │   ├── __init__.py
 │   │   ├── main.py           # FastAPI entrypoint (/ and /health endpoints)
-│   │   ├── api/              # API routers (/analyze, /risk-assessment)
-│   │   ├── models/           # Pydantic schemas (RiskAssessmentRequest, Response)
-│   │   ├── services/         # Security signals service
+│   │   ├── api/              # API routers (/analyze, /risk-assessment, /policy-decision)
+│   │   ├── models/           # Pydantic schemas across all phases
+│   │   ├── services/         # Contextual security signals service
 │   │   └── core/             # Centralized config, weights & thresholds
-│   └── tests/                # Automated test suite (test_main.py, test_analyze.py, test_risk.py)
+│   └── tests/                # Automated test suite (31 automated tests)
+│       ├── test_main.py      # Phase 1 health and root tests
+│       ├── test_analyze.py   # Phase 2 intent and consistency tests
+│       ├── test_risk.py      # Phase 3 behavioral anomaly & risk tests
+│       └── test_policy.py    # Phase 4 policy rules & decision tests
+│
+├── policy/                   # Context-Aware Policy Decision Engine (Phase 4)
+│   ├── __init__.py           # Policy package exports
+│   ├── schemas.py            # DecisionEnum (ALLOW, REVIEW, BLOCK), Request/Response
+│   ├── rules.py              # Hierarchical security rules & trigger identifiers
+│   └── engine.py             # Policy priority evaluation engine
 │
 ├── ml/                       # Machine Learning intelligence modules
 │   ├── intent/               # Intent analysis, embeddings & consistency
@@ -77,9 +87,8 @@ AgentGuard/
 │       ├── resource_classifier.py # Sensitivity heuristics (credentials, system, URLs)
 │       └── engine.py         # 0-100 normalized risk engine & explainability
 │
-├── policy/                   # Policy rules, RBAC definitions (Phase 4)
-├── database/                 # SQLite storage and database migrations
-├── frontend/                 # React + Vite administrative dashboard (Phase 4)
+├── database/                 # SQLite storage and database migrations (Phase 5)
+├── frontend/                 # React + Vite administrative dashboard (Phase 5)
 ├── data/                     # Sample datasets and evaluation benchmarks
 ├── docs/                     # Documentation and architecture diagrams
 │   └── architecture.md       # High-level security architecture specification
@@ -89,6 +98,20 @@ AgentGuard/
 ├── README.md                 # Project documentation
 └── requirements.txt          # Python dependencies
 ```
+
+---
+
+## Policy Decision Scenarios
+
+| Scenario | User Request | Proposed Action | Target Resource | Decision | Triggered Policies | Human Review? | Reason Summary |
+| :--- | :--- | :--- | :--- | :---: | :--- | :---: | :--- |
+| **1. Aligned Reporting** | "Prepare my monthly project report" | `read_project_file` | `project_data.csv` | **ALLOW** | `LOW_RISK_ALIGNED_ACTION` | `No` | Read action is consistent with reporting goal; low risk. |
+| **2. Destructive Mismatch** | "Prepare my monthly project report" | `delete_project_file` | `project_data.csv` | **BLOCK** | `DESTRUCTIVE_ACTION`<br>`INTENT_ACTION_MISMATCH` | `No` | Action is destructive while user goal is non-destructive reporting. |
+| **3. User Cleanup Intent** | "Clean up my project files" | `delete_project_file` | `project_data.csv` | **REVIEW** | `DESTRUCTIVE_ACTION` | `Yes` | Action is destructive; user justified it but requires explicit human confirmation. |
+| **4. External Exfiltration** | "Prepare my monthly project report" | `upload_external` | `https://unknown-server.com/upload` | **BLOCK** | `SENSITIVE_EXTERNAL_TRANSFER`<br>`INTENT_ACTION_MISMATCH` | `No` | Unauthorized outbound data upload unrelated to stated goal. |
+| **5. Credential Access** | "Check my project configuration" | `read_project_file` | `credentials.txt` | **REVIEW** | `SENSITIVE_RESOURCE_ACCESS` | `Yes` | Resource contains credentials and intent does not explicitly justify access. |
+| **6. Shell Escalation** | "Prepare my monthly project report" | `execute_command` | `bash` | **BLOCK** | `CRITICAL_RISK_BLOCK`<br>`SYSTEM_COMMAND_RESTRICTION`<br>`BEHAVIORAL_ANOMALY` | `No` | Critical risk; shell command execution without administrative intent. |
+| **7. Legitimate Email** | "Send the completed report to my professor" | `send_email` | `professor@university.edu` | **ALLOW** | `LOW_RISK_ALIGNED_ACTION` | `No` | Email dispatch directly supports user's communication goal. |
 
 ---
 
@@ -132,13 +155,14 @@ The interactive documentation will be available at:
 * Health Check: [http://127.0.0.1:8000/health](http://127.0.0.1:8000/health)
 * Intent Analysis: `POST http://127.0.0.1:8000/analyze`
 * Risk Assessment: `POST http://127.0.0.1:8000/risk-assessment`
+* Policy Decision: `POST http://127.0.0.1:8000/policy-decision` (or alias `POST http://127.0.0.1:8000/decision`)
 * Swagger UI Docs: [http://127.0.0.1:8000/docs](http://127.0.0.1:8000/docs)
 
 ---
 
 ## Running the Tests
 
-To run the complete automated test suite across Phase 1, Phase 2, and Phase 3:
+To run the complete automated test suite across all Phase 1, Phase 2, Phase 3, and Phase 4 components:
 
 ```powershell
 .\venv\Scripts\pytest.exe backend/tests/ -v

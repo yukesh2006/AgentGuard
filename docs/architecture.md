@@ -1,8 +1,8 @@
 # AgentGuard Architecture Specification
 
-> **Phase 3 Status Document**  
-> *Status: Active Behavioral Anomaly Detection & Multi-Factor Risk Assessment Engine*  
-> *Note: Deterministic ALLOW/REVIEW/BLOCK policy enforcement rules remain scheduled for Phase 4.*
+> **Phase 4 Status Document**  
+> *Status: Active Context-Aware Policy Decision Engine (ALLOW, REVIEW, BLOCK)*  
+> *Note: Production proxy interceptors and UI dashboard integration belong to subsequent stages.*
 
 ---
 
@@ -52,12 +52,13 @@ Traditional security firewalls inspect raw IP packets or API signatures. AgentGu
 │        └────────────────┬──────────────────┘                │
 │                         ▼                                   │
 │        ┌───────────────────────────────────┐                │
-│        │      Policy Engine (Phase 4)      │                │
+│        │   POLICY DECISION ENGINE (PHASE 4)│                │
+│        │    Hierarchical Security Rules    │                │
 │        └────────────────┬──────────────────┘                │
 └─────────────────────────┼───────────────────────────────────┘
                           │
                           ▼
-            [ ALLOW / REVIEW / BLOCK ] (Phase 4)
+            [ ALLOW / REVIEW / BLOCK ]
                           │
          ┌────────────────┴──────────────┐
          │                               │
@@ -99,11 +100,8 @@ The interception proxy or middleware layer. Before any tool execution or externa
 ### 3.6. Risk Assessment Engine
 Combines consistency, anomaly scores, resource sensitivity, destructive signals, and permission tiers into a transparent 0–100 risk score with human-readable factor explanations.
 
-### 3.7. The Triad Decision Model (Phase 4)
-Every proposed action eventually maps to one of three decisions:
-* **ALLOW:** The action is consistent with user intent and complies with security policies.
-* **REVIEW:** The action has moderate risk, unexpected side effects, or borderline intent alignment. Human-in-the-loop (HITL) approval is requested.
-* **BLOCK:** The action represents a clear threat, policy violation, prompt injection exploitation, or unauthorized exfiltration.
+### 3.7. Context-Aware Policy Decision Engine (Phase 4)
+Evaluates full operational context against hierarchical security policies to produce enforceable verdicts: `ALLOW`, `REVIEW`, or `BLOCK`.
 
 ---
 
@@ -130,83 +128,89 @@ In Phase 2, AgentGuard introduced the foundational semantic layer:
 
 ## 6. Phase 3 — Behavioral Anomaly + Risk Assessment
 
-Phase 3 introduces behavioral sequence monitoring and a multi-factor risk assessment engine accessible via `POST /risk-assessment`.
-
-### 6.1. Behavioral History & Feature Extraction (`ml/anomaly/features.py`)
-AI agents rarely execute malicious actions in isolation; threats often emerge as sudden deviations or privilege escalations after benign tasks. The feature extractor converts session trajectories into 10 measurable metrics:
-1. `history_length`: Total volume of prior actions in the active session.
-2. `unique_action_count`: Number of distinct action types executed.
-3. `destructive_history_count`: Cumulative destructive actions in session history.
-4. `current_is_destructive`: Flag indicating if the proposed action is destructive.
-5. `external_history_count`: Cumulative external uploads/transfers in session history.
-6. `current_is_external`: Flag indicating if the proposed action contacts external endpoints.
-7. `system_command_history_count`: Prior system shell commands executed.
-8. `current_is_system_command`: Flag indicating if the proposed action invokes `execute_command`.
-9. `action_repetition_count`: Frequency of current action within recent history.
-10. `escalation_anomaly_flag`: Indicates sudden high-risk tool invocation following a purely benign, non-destructive history.
-
-### 6.2. IsolationForest Anomaly Detection (`ml/anomaly/detector.py`)
-* **Algorithm:** Unsupervised `IsolationForest` (`n_estimators=100`, `contamination=0.10`, `random_state=42`) from `scikit-learn`.
-* **Methodology Disclosure:**
-  > [!NOTE]
-  > **Synthetic Baseline Transparency:** The IsolationForest detector is trained on a synthetic baseline representing routine agent workflows (iterative data reads, analyses, queries, formatting, and benign repetition). In a production cybersecurity deployment, this baseline would be trained on empirical historical audit logs and agent telemetry. No claims of "99% production cyber accuracy" are made.
-* **Scoring:** Calculates continuous decision scores:
-  * Inliers ($\ge 0.0$): Regular trajectory, `severity = "low"`.
-  * Outliers ($< 0.0$): Deviant trajectory; if score $< -0.08$, `severity = "high"`, otherwise `"medium"`.
-
-### 6.3. Resource Sensitivity Classification (`ml/risk/resource_classifier.py`)
-Heuristic classifier determining asset sensitivity:
-* `sensitive_credentials`: File names or paths containing `password`, `secret`, `credential`, `key`, `token`, `.env`, etc.
-* `system_resource`: Shell interpreters, administrative paths (`bash`, `cmd`, `powershell`, `/dev/`).
-* `external_destination`: Remote endpoints (`http://`, `https://`).
-* `normal_project_file`: Local data files (`.csv`, `.tsv`, `.json`, `.parquet`).
-* `normal_document`: Standard document formats (`.pdf`, `.docx`, `.md`).
-
-### 6.4. Transparent Risk Scoring Formula (`ml/risk/engine.py`)
-AgentGuard calculates a normalized composite risk score from $0.0$ to $100.0$:
-
-$$\text{RiskScore} = \min\left(100.0, \, \sum \text{FactorImpacts}\right)$$
-
-#### Configurable Risk Factor Weights:
-| Risk Factor | Config Weight | Condition for Impact |
-| :--- | :---: | :--- |
-| **Intent Inconsistency** | 25.0 | Low semantic compatibility ($< 0.15$) adds $25.0$; medium compatibility adds $10.0$; high adds $0.0$. |
-| **Destructive Action** | 25.0 | Action is destructive while user intent is purely observational or generative. |
-| **External Data Transfer** | 25.0 | Outbound transfer to external destination without explicit authorization in user request. |
-| **System Execution** | 25.0 | Shell command execution requested outside administrative intent. |
-| **Resource Sensitivity** | 25.0 | Target asset is categorized as `sensitive_credentials` or privileged `system_resource`. |
-| **Behavioral Anomaly** | 20.0 | High IsolationForest anomaly severity adds $20.0$; medium severity adds $12.0$. |
-| **Permission Mismatch** | 15.0 | Standard user account invokes administrative or privileged actions without delegation. |
-
-### 6.5. Risk Level Categorization
-The numerical score maps into transparent risk bands:
-* **`LOW` (0.0 – 24.9):** Consistent, non-destructive, normal behavioral trajectory.
-* **`MEDIUM` (25.0 – 49.9):** Moderate ambiguity, access to sensitive assets, or slight behavioral deviation.
-* **`HIGH` (50.0 – 74.9):** Significant inconsistency, unauthorized external transfer, or unrequested destructive action.
-* **`CRITICAL` (75.0 – 100.0):** Multiple compounding threat signals (e.g., sudden shell escalation + low intent alignment + permission mismatch).
-
-### 6.6. Risk Explanation & Transparency
-Every risk assessment returns structured contributing factors:
-```json
-{
-  "factor": "destructive_action",
-  "impact": 25.0,
-  "reason": "Action 'delete_project_file' is destructive, but user goal does not request file or resource deletion."
-}
-```
-Avoiding black-box outputs ensures human auditors and downstream agents understand exactly *why* risk was assigned.
-
-### 6.7. Risk Assessment vs. Policy Decision
-> [!IMPORTANT]
-> **Risk Assessment $\neq$ Policy Decision**
-> * **Risk Assessment (Phase 3)** answers: *"How risky does this action appear given its intent, context, resource, and history?"*
-> * **Policy Engine (Phase 4)** will answer: *"Given this risk score, organizational rules, and user configuration, what action should AgentGuard take? (`ALLOW`, `REVIEW`, or `BLOCK`)"*
+In Phase 3, AgentGuard added behavioral sequence tracking and multi-factor risk assessment:
+* **Behavioral Feature Extractor (`ml/anomaly/features.py`):** Quantifies 10 behavioral metrics from trajectory history.
+* **IsolationForest Anomaly Detector (`ml/anomaly/detector.py`):** Detects sudden operational deviations and escalations against a synthetic baseline.
+* **Resource Sensitivity Classifier (`ml/risk/resource_classifier.py`):** Categorizes assets into sensitivity tiers.
+* **Risk Assessment Engine (`ml/risk/engine.py`):** Computes normalized 0–100 composite risk scores with explainable factor breakdowns.
 
 ---
 
-## 7. Development Roadmap Across Phases
+## 7. Phase 4 — Context-Aware Policy Decision Engine
+
+Phase 4 operationalizes AgentGuard into an active enforcement gateway, deployed at `POST /policy-decision` (and alias `POST /decision`).
+
+### 7.1. Why Risk Scoring Alone Is Insufficient
+A simple threshold like `if risk_score > 50: BLOCK` fails in real-world AI security:
+* **Contextual Justification:** A destructive cleanup (`delete_project_file`) may have a risk score of 45–55, but if the user explicitly asked *"Clean up my project files"*, it should be routed to human **`REVIEW`** rather than blindly blocked.
+* **Hard Security Boundaries:** An unauthorized external exfiltration of sensitive credentials might score 60, but must be strictly **`BLOCKED`** immediately regardless of exact thresholds.
+* **Intent Alignment:** A benign command execution may score moderate risk, but if it has zero administrative intent, it represents a potential prompt injection attack that must be stopped.
+
+### 7.2. Risk Assessment vs. Policy Decision
+> [!IMPORTANT]
+> **Risk Assessment $\neq$ Policy Decision**
+> * **Risk Assessment (Phase 3)** answers: *"How risky does this action appear given its intent, context, resource, and history?"*
+> * **Policy Decision Engine (Phase 4)** answers: *"Given this risk, intent consistency, resource sensitivity, and organization security policies, what operational verdict must be enforced? (`ALLOW`, `REVIEW`, or `BLOCK`)"*
+
+### 7.3. Decision Philosophy
+
+#### 1. ALLOW
+Action is granted automatic execution through the gateway:
+* User intent and requested action are strongly aligned.
+* Risk score is low ($< 25.0$).
+* No security policies are violated.
+* Target resource is not sensitive credentials.
+* No behavioral anomaly or unauthorized destructive action is present.
+
+#### 2. REVIEW
+Execution is temporarily suspended and sent to human-in-the-loop (HITL) approval (`requires_human_review: true`):
+* Risk score is moderate ($25.0 \le \text{risk} < 75.0$) with contextual ambiguity.
+* Sensitive resources (`credentials.txt`, private keys) are accessed without explicit intent clarification.
+* Destructive actions (`delete_project_file`) that were requested by the user but require confirmation before irreversible deletion.
+* Behavioral deviations that warrant human verification before proceeding.
+
+#### 3. BLOCK
+Action execution is immediately terminated (`requires_human_review: false`):
+* **Critical Risk:** Compounding threat factors resulting in critical risk score ($\ge 75.0$).
+* **Sensitive External Transfer:** Attempting outbound transmission or upload of data without explicit authorization.
+* **Dangerous Intent-Action Mismatch:** Performing destructive deletions or exfiltrations during routine, non-destructive tasks.
+* **Unauthorized System Command:** Shell command execution (`execute_command`) without administrative user intent.
+
+### 7.4. Policy Hierarchy & Triggered Identifiers
+Policies are evaluated according to a strict priority hierarchy:
+1. `CRITICAL_RISK_BLOCK`: Blocks critical risk compounding threats.
+2. `SENSITIVE_EXTERNAL_TRANSFER`: Blocks unauthorized external data transfers.
+3. `INTENT_ACTION_MISMATCH`: Blocks actions with severe intent divergence.
+4. `SYSTEM_COMMAND_RESTRICTION`: Blocks arbitrary system shell executions.
+5. `SENSITIVE_RESOURCE_ACCESS`: Routes credential/key access to human review.
+6. `DESTRUCTIVE_ACTION`: Routes potentially destructive file operations to human review.
+7. `HIGH_RISK_REVIEW` / `MEDIUM_RISK_REVIEW`: Routes moderate risk ambiguity to review.
+8. `LOW_RISK_ALIGNED_ACTION`: Allows safe, aligned operations.
+
+### 7.5. Structured & Explainable Decision Output
+```json
+{
+  "decision": "BLOCK",
+  "risk_score": 50.0,
+  "risk_level": "HIGH",
+  "requires_human_review": false,
+  "triggered_policies": [
+    "SENSITIVE_EXTERNAL_TRANSFER",
+    "INTENT_ACTION_MISMATCH"
+  ],
+  "reason": "The requested action attempts to transfer project data to an external destination that is not related to or justified by the user's stated goal.",
+  "recommendation": "Block the external transfer and require explicit administrative clearance.",
+  "action": "upload_external",
+  "target_resource": "https://unknown-server.com/upload"
+}
+```
+
+---
+
+## 8. Development Roadmap Across Phases
 
 * **Phase 1 (Completed):** Foundational architecture, repository layout, baseline FastAPI endpoints, hygiene checks, and testing harness.
 * **Phase 2 (Completed):** Intent analyzer, action normalizer, context extraction, sentence embeddings (`all-MiniLM-L6-v2`), consistency analyzer, contextual security signals, and `/analyze` endpoint.
 * **Phase 3 (Completed):** Behavioral history extraction, IsolationForest anomaly detection, resource classification, multi-factor risk scoring engine, explainability generator, and `/risk-assessment` endpoint.
-* **Phase 4 (Upcoming):** Deterministic Policy Engine (ALLOW / REVIEW / BLOCK), configurable thresholds, administrative override options, audit logging, and human-in-the-loop review interfaces.
+* **Phase 4 (Completed):** Context-Aware Policy Decision Engine (ALLOW, REVIEW, BLOCK), hierarchical rules, explainability recommendations, and `/policy-decision` endpoint.
+* **Phase 5 (Future):** Interactive administrative review dashboard, agent proxy integration, and persistent audit database.

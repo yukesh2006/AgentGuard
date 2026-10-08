@@ -250,7 +250,11 @@ class RiskAssessmentEngine:
             "signals": signals,
             "consistency": consistency_dict,
             "action": action_dict,
+            "intent": intent_dict,
+            "context": context_dict,
+            "resource": resource_info,
         }
+
 
 
 # Global singleton instance

@@ -1,6 +1,6 @@
 """
 AgentGuard - Context-Aware AI Intent Firewall
-Phase 3: Behavioral Anomaly Detection & Multi-Factor Risk Assessment Engine
+Phase 4: Context-Aware Policy Decision Engine (ALLOW, REVIEW, BLOCK)
 """
 
 from fastapi import FastAPI, Request
@@ -9,6 +9,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.core.config import settings
 from app.api.analyze import router as analyze_router
 from app.api.risk import router as risk_router
+from app.api.decision import router as decision_router
 
 # Initialize FastAPI application instance
 app = FastAPI(
@@ -26,9 +27,10 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Include API routers
+# Include API routers across all phases
 app.include_router(analyze_router)
 app.include_router(risk_router)
+app.include_router(decision_router)
 
 
 # Global exception handler to prevent leaking raw tracebacks
