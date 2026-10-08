@@ -8,6 +8,10 @@ from app.models.schemas import (
     ActionInfo,
     ConsistencyResult,
     SecuritySignal,
+    RiskAssessmentRequest,
+    RiskAssessmentResponse,
+    RiskFactor,
+    BehaviorResult,
 )
 
 __all__ = [
@@ -18,4 +22,8 @@ __all__ = [
     "ActionInfo",
     "ConsistencyResult",
     "SecuritySignal",
+    "RiskAssessmentRequest",
+    "RiskAssessmentResponse",
+    "RiskFactor",
+    "BehaviorResult",
 ]

@@ -33,6 +33,21 @@ class Settings(BaseModel):
     high_similarity_threshold: float = 0.33
     low_similarity_threshold: float = 0.15
 
+    # Risk Level Categorization Thresholds (0 - 100)
+    risk_level_low_threshold: float = 25.0       # < 25: LOW
+    risk_level_medium_threshold: float = 50.0    # 25 to < 50: MEDIUM
+    risk_level_high_threshold: float = 75.0      # 50 to < 75: HIGH
+    # >= 75: CRITICAL
+
+    # Prototype Risk Factor Weights (Centralized)
+    weight_intent_inconsistency: float = 25.0
+    weight_behavioral_anomaly: float = 20.0
+    weight_destructive_action: float = 25.0
+    weight_external_transfer: float = 25.0
+    weight_system_execution: float = 25.0
+    weight_resource_sensitivity: float = 25.0
+    weight_permission_mismatch: float = 15.0
 
 
 settings = Settings()
+

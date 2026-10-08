@@ -30,17 +30,17 @@ Based on these dimensions, AgentGuard will eventually produce one of three decis
 
 ## Current Phase
 
-**Phase 2 — Intent and Context Intelligence**
+**Phase 3 — Behavioral Anomaly Detection & Risk Assessment**
 
-> **Current Status**: The foundational intelligence layer is active. AgentGuard evaluates user intent, extracts operational context, normalizes agent actions, computes semantic intent-action consistency using `sentence-transformers` (`all-MiniLM-L6-v2`), and produces contextual security signals via `POST /analyze`.  
-> *Note: Final risk scoring and deterministic ALLOW/REVIEW/BLOCK policy enforcement remain scheduled for subsequent phases.*
+> **Current Status**: The behavioral intelligence and multi-factor risk assessment engines are active. AgentGuard evaluates historical action trajectories using an unsupervised `IsolationForest` model, classifies target resource sensitivities, aggregates contextual signals, and produces transparent 0–100 normalized risk scores with plain-language explanations via `POST /risk-assessment`.  
+> *Note: Deterministic ALLOW/REVIEW/BLOCK policy enforcement rules and human-in-the-loop controls belong to Phase 4. AgentGuard currently performs passive risk analysis and does NOT execute any agent actions.*
 
 ---
 
 ## Technology Stack
 
 * **Backend:** Python 3.11+, FastAPI, Uvicorn, Pydantic
-* **AI/ML:** sentence-transformers (`all-MiniLM-L6-v2`), PyTorch, NumPy, pandas, scikit-learn
+* **AI/ML:** sentence-transformers (`all-MiniLM-L6-v2`), scikit-learn (`IsolationForest`), PyTorch, NumPy, pandas
 * **Frontend (Upcoming Phases):** React, Vite, Modern CSS
 * **Database (Upcoming Phases):** SQLite (for MVP)
 * **Tooling & Environments:** Git/GitHub, Postman, Python Virtual Environments (`venv`)
@@ -56,11 +56,11 @@ AgentGuard/
 │   ├── app/                  # Application source code
 │   │   ├── __init__.py
 │   │   ├── main.py           # FastAPI entrypoint (/ and /health endpoints)
-│   │   ├── api/              # API route controllers (/analyze)
-│   │   ├── models/           # Pydantic schemas (AnalyzeRequest, AnalyzeResponse)
+│   │   ├── api/              # API routers (/analyze, /risk-assessment)
+│   │   ├── models/           # Pydantic schemas (RiskAssessmentRequest, Response)
 │   │   ├── services/         # Security signals service
-│   │   └── core/             # Application configuration & thresholds
-│   └── tests/                # Automated test suite (test_main.py, test_analyze.py)
+│   │   └── core/             # Centralized config, weights & thresholds
+│   └── tests/                # Automated test suite (test_main.py, test_analyze.py, test_risk.py)
 │
 ├── ml/                       # Machine Learning intelligence modules
 │   ├── intent/               # Intent analysis, embeddings & consistency
@@ -70,10 +70,14 @@ AgentGuard/
 │   │   └── embeddings.py     # SentenceTransformer embedding service
 │   ├── context/              # Context tracking & resource type inference
 │   │   └── engine.py         # Structured context engine
-│   ├── anomaly/              # Behavioral anomaly detection (Phase 3)
-│   └── risk/                 # Multi-factor risk scoring (Phase 3)
+│   ├── anomaly/              # Behavioral anomaly detection
+│   │   ├── features.py       # 10-dimensional behavioral feature extractor
+│   │   └── detector.py       # IsolationForest anomaly detector (synthetic baseline)
+│   └── risk/                 # Multi-factor risk scoring
+│       ├── resource_classifier.py # Sensitivity heuristics (credentials, system, URLs)
+│       └── engine.py         # 0-100 normalized risk engine & explainability
 │
-├── policy/                   # Policy rules, RBAC definitions (Phase 3/4)
+├── policy/                   # Policy rules, RBAC definitions (Phase 4)
 ├── database/                 # SQLite storage and database migrations
 ├── frontend/                 # React + Vite administrative dashboard (Phase 4)
 ├── data/                     # Sample datasets and evaluation benchmarks
@@ -126,14 +130,15 @@ uvicorn app.main:app --reload
 The interactive documentation will be available at:
 * API Root: [http://127.0.0.1:8000/](http://127.0.0.1:8000/)
 * Health Check: [http://127.0.0.1:8000/health](http://127.0.0.1:8000/health)
-* Analysis Endpoint: `POST http://127.0.0.1:8000/analyze`
+* Intent Analysis: `POST http://127.0.0.1:8000/analyze`
+* Risk Assessment: `POST http://127.0.0.1:8000/risk-assessment`
 * Swagger UI Docs: [http://127.0.0.1:8000/docs](http://127.0.0.1:8000/docs)
 
 ---
 
 ## Running the Tests
 
-To run the automated test suite across all Phase 1 and Phase 2 test cases:
+To run the complete automated test suite across Phase 1, Phase 2, and Phase 3:
 
 ```powershell
 .\venv\Scripts\pytest.exe backend/tests/ -v

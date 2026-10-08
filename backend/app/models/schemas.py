@@ -118,3 +118,43 @@ class AnalyzeResponse(BaseModel):
     action: ActionInfo
     consistency: ConsistencyResult
     signals: List[SecuritySignal] = Field(default_factory=list)
+
+
+# =====================================================================
+# Phase 3: Behavioral Anomaly & Risk Assessment Schemas
+# =====================================================================
+
+class RiskAssessmentRequest(AnalyzeRequest):
+    """
+    Incoming request payload for POST /risk-assessment.
+    Inherits all fields from AnalyzeRequest including previous_actions.
+    """
+    pass
+
+
+class BehaviorResult(BaseModel):
+    """Behavioral anomaly analysis results."""
+    is_anomaly: bool = Field(..., description="True if behavior deviates from baseline")
+    anomaly_score: float = Field(..., description="Calculated IsolationForest decision offset")
+    severity: str = Field(..., description="Behavioral anomaly severity: low, medium, or high")
+
+
+class RiskFactor(BaseModel):
+    """Granular contributing factor in the overall risk assessment."""
+    factor: str = Field(..., description="Risk factor identifier")
+    impact: float = Field(..., description="Numerical score contribution from this factor")
+    reason: str = Field(..., description="Human-understandable justification")
+
+
+class RiskAssessmentResponse(BaseModel):
+    """
+    Structured response payload for POST /risk-assessment.
+    """
+    risk_score: float = Field(..., description="Aggregated risk score between 0.0 and 100.0")
+    risk_level: str = Field(..., description="Categorical risk band: LOW, MEDIUM, HIGH, or CRITICAL")
+    behavior: BehaviorResult = Field(..., description="Behavioral anomaly analysis")
+    factors: List[RiskFactor] = Field(default_factory=list, description="List of contributing risk factors")
+    explanation: str = Field(..., description="Synthesized plain-language risk explanation")
+    signals: List[SecuritySignal] = Field(default_factory=list, description="Underlying security signals")
+    consistency: Optional[ConsistencyResult] = None
+    action: Optional[ActionInfo] = None
