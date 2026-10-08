@@ -20,7 +20,7 @@ AgentGuard intercepts proposed actions and evaluates:
 * **Previous behavior** (Session trajectory and anomaly trends)
 * **Intent-action consistency** (Semantic alignment between user prompt and tool execution)
 
-Based on these dimensions, AgentGuard produces one of three decisions:
+Based on these dimensions, AgentGuard will eventually produce one of three decisions:
 
 * **ALLOW** — Action is verified, safe, and aligned with user intent.
 * **REVIEW** — Action contains moderate risk or borderline ambiguity, triggering human-in-the-loop verification.
@@ -30,18 +30,19 @@ Based on these dimensions, AgentGuard produces one of three decisions:
 
 ## Current Phase
 
-**Phase 1 — Project Foundation**
+**Phase 2 — Intent and Context Intelligence**
 
-> **Important**: This phase establishes the core directory layout, FastAPI service foundation, test harness, configuration templates, and architectural design. The actual Machine Learning, Risk Assessment, and Policy engines will be implemented in subsequent phases. No active ML detection logic is included in Phase 1.
+> **Current Status**: The foundational intelligence layer is active. AgentGuard evaluates user intent, extracts operational context, normalizes agent actions, computes semantic intent-action consistency using `sentence-transformers` (`all-MiniLM-L6-v2`), and produces contextual security signals via `POST /analyze`.  
+> *Note: Final risk scoring and deterministic ALLOW/REVIEW/BLOCK policy enforcement remain scheduled for subsequent phases.*
 
 ---
 
 ## Technology Stack
 
 * **Backend:** Python 3.11+, FastAPI, Uvicorn, Pydantic
-* **AI/ML (Upcoming Phases):** scikit-learn, sentence-transformers, PyTorch, NumPy, pandas
+* **AI/ML:** sentence-transformers (`all-MiniLM-L6-v2`), PyTorch, NumPy, pandas, scikit-learn
 * **Frontend (Upcoming Phases):** React, Vite, Modern CSS
-* **Database:** SQLite (for MVP)
+* **Database (Upcoming Phases):** SQLite (for MVP)
 * **Tooling & Environments:** Git/GitHub, Postman, Python Virtual Environments (`venv`)
 
 ---
@@ -54,28 +55,33 @@ AgentGuard/
 ├── backend/                  # FastAPI backend service
 │   ├── app/                  # Application source code
 │   │   ├── __init__.py
-│   │   ├── main.py           # FastAPI entrypoint with root & health endpoints
-│   │   ├── api/              # API route controllers and endpoints
-│   │   ├── models/           # Pydantic schemas and data models
-│   │   ├── services/         # Business logic and interceptor services
-│   │   └── core/             # Application configuration, settings, and constants
-│   └── tests/                # Automated test suite (test_main.py)
+│   │   ├── main.py           # FastAPI entrypoint (/ and /health endpoints)
+│   │   ├── api/              # API route controllers (/analyze)
+│   │   ├── models/           # Pydantic schemas (AnalyzeRequest, AnalyzeResponse)
+│   │   ├── services/         # Security signals service
+│   │   └── core/             # Application configuration & thresholds
+│   └── tests/                # Automated test suite (test_main.py, test_analyze.py)
 │
-├── ml/                       # Machine Learning modules (Planned for Phase 3)
-│   ├── intent/               # Intent analysis & embedding models
-│   ├── context/              # Context tracking & representation
-│   ├── anomaly/              # Anomaly detection models
-│   └── risk/                 # Multi-factor risk scoring
+├── ml/                       # Machine Learning intelligence modules
+│   ├── intent/               # Intent analysis, embeddings & consistency
+│   │   ├── analyzer.py       # Intent analyzer & prototype matcher
+│   │   ├── action_normalizer.py # Action dictionary & normalization
+│   │   ├── consistency.py    # Intent-action consistency scoring
+│   │   └── embeddings.py     # SentenceTransformer embedding service
+│   ├── context/              # Context tracking & resource type inference
+│   │   └── engine.py         # Structured context engine
+│   ├── anomaly/              # Behavioral anomaly detection (Phase 3)
+│   └── risk/                 # Multi-factor risk scoring (Phase 3)
 │
-├── policy/                   # Policy rules, RBAC definitions, and guardrails
+├── policy/                   # Policy rules, RBAC definitions (Phase 3/4)
 ├── database/                 # SQLite storage and database migrations
-├── frontend/                 # React + Vite administrative dashboard (Planned)
+├── frontend/                 # React + Vite administrative dashboard (Phase 4)
 ├── data/                     # Sample datasets and evaluation benchmarks
 ├── docs/                     # Documentation and architecture diagrams
 │   └── architecture.md       # High-level security architecture specification
 │
 ├── .env.example              # Sample environment configuration
-├── .gitignore                # Repository ignore rules (protects large files & models)
+├── .gitignore                # Repository ignore rules (protects models & caches)
 ├── README.md                 # Project documentation
 └── requirements.txt          # Python dependencies
 ```
@@ -120,19 +126,15 @@ uvicorn app.main:app --reload
 The interactive documentation will be available at:
 * API Root: [http://127.0.0.1:8000/](http://127.0.0.1:8000/)
 * Health Check: [http://127.0.0.1:8000/health](http://127.0.0.1:8000/health)
+* Analysis Endpoint: `POST http://127.0.0.1:8000/analyze`
 * Swagger UI Docs: [http://127.0.0.1:8000/docs](http://127.0.0.1:8000/docs)
 
 ---
 
 ## Running the Tests
 
-To verify that the Phase 1 endpoints are functioning correctly:
+To run the automated test suite across all Phase 1 and Phase 2 test cases:
 
 ```powershell
-# From the project root:
-.\venv\Scripts\python.exe backend\tests\test_main.py
-```
-Or using pytest:
-```powershell
-.\venv\Scripts\pytest.exe backend/tests/
+.\venv\Scripts\pytest.exe backend/tests/ -v
 ```

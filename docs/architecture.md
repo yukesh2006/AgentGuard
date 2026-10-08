@@ -1,8 +1,8 @@
 # AgentGuard Architecture Specification
 
-> **Phase 1 Document**  
-> *Status: Architectural Blueprint & Foundational Specification*  
-> *Note: ML, Risk, and Policy engine modules are planned for subsequent phases and are not yet active in Phase 1.*
+> **Phase 2 Status Document**  
+> *Status: Active Intelligence Foundation (Intent, Context & Semantic Consistency)*  
+> *Note: Final Risk scoring and deterministic ALLOW/REVIEW/BLOCK Policy engines remain scheduled for Phase 3 and 4.*
 
 ---
 
@@ -37,11 +37,11 @@ Traditional security firewalls inspect raw IP packets or API signatures. AgentGu
 │           └─────────────┬─────┴──────────────────┘          │
 │                         ▼                                   │
 │           ┌────────────────────────────┐                    │
-│           │   Risk Assessment Engine   │                    │
+│           │   Risk Assessment Engine   │  (Phase 3)         │
 │           └─────────────┬──────────────┘                    │
 │                         ▼                                   │
 │           ┌────────────────────────────┐                    │
-│           │       Policy Engine        │                    │
+│           │       Policy Engine        │  (Phase 3/4)       │
 │           └─────────────┬──────────────┘                    │
 └─────────────────────────┼───────────────────────────────────┘
                           │
@@ -137,9 +137,60 @@ An action cannot be judged purely by its syntax; it must be evaluated in relatio
 
 ---
 
-## 5. Development Roadmap Across Phases
+## 5. Phase 2 — Intent and Context Intelligence
 
-* **Phase 1 (Current):** Foundational architecture, repository layout, baseline FastAPI endpoints, hygiene checks, and testing harness.
-* **Phase 2 (Upcoming):** Data models, schemas for Intent/Context/Action payloads, and deterministic policy rule engine.
-* **Phase 3:** Machine learning integration (semantic intent embedding, similarity scoring, anomaly detection).
+In Phase 2, AgentGuard introduces the first functional AI/ML intelligence layer, deployed under `POST /analyze`.
+
+### 5.1. Intent Analysis (`ml/intent/analyzer.py`)
+The Intent Analyzer parses natural-language prompts into structured operational intents without fabricating synthetic metrics:
+* **Semantic Category Mapping:** Computes dense vector embeddings of user requests and measures cosine distance against canonical intent prototypes (`report_generation`, `data_analysis`, `file_management`, `communication_dispatch`, `system_administration`, `information_retrieval`).
+* **Goal Extraction:** Cleans and normalizes the core user directive.
+* **Genuine ML Confidence:** Assigns a real cosine similarity score derived directly from the embedding model as the confidence metric.
+
+### 5.2. Action Normalization (`ml/intent/action_normalizer.py`)
+AI agents invoke tools via programmatic names (e.g., `read_project_file`, `upload_external`, `delete_project_file`). The Action Normalizer:
+* Translates raw tool names into human-understandable descriptions (e.g., `"Read a project data file"`, `"Upload data to an external destination"`).
+* Enriches each action with functional security metadata (e.g., `is_destructive`, `is_external`, functional category).
+* Rejects unknown or malformed action verbs with clear client errors.
+
+### 5.3. Context Extraction (`ml/context/engine.py`)
+The Context Engine builds a unified context frame:
+* Inters resource categories automatically from target strings (`file`, `network_endpoint`, `email_recipient`, `database`, `general_resource`).
+* Associates active session parameters, user privilege tiers, and prior execution history.
+
+### 5.4. Semantic Embeddings (`ml/intent/embeddings.py`)
+* Employs the `all-MiniLM-L6-v2` model from `sentence-transformers`.
+* Generates 384-dimensional dense semantic vectors.
+* Encapsulated in a singleton pattern to eliminate model reloading latency.
+* Preserves zero-footprint repository safety by utilizing host user cache directories (`~/.cache/huggingface/hub`) outside the Git tree.
+
+### 5.5. Intent-Action Consistency (`ml/intent/consistency.py`)
+Evaluates the semantic distance between what the user requested and what the agent is attempting:
+$$\text{ActionContext} = \text{Action Description} + \text{" on "} + \text{Target Resource}$$
+$$\text{Similarity} = \cos(\mathbf{v}_{\text{intent}}, \mathbf{v}_{\text{action\_context}})$$
+* **Configurable Compatibility Categorization:**
+  * **High:** $\text{Similarity} \ge 0.33$
+  * **Medium:** $0.15 \le \text{Similarity} < 0.33$
+  * **Low:** $\text{Similarity} < 0.15$
+
+### 5.6. Contextual Security Signals (`backend/app/services/signals.py`)
+Generates actionable security signals reflecting potential risk factors:
+* `intent_action_consistency`: Assesses degree of semantic alignment.
+* `destructive_action_anomaly`: Flags irreversible file deletions requested during non-destructive tasks.
+* `external_data_transfer`: Flags outbound uploads not authorized by the user prompt.
+* `unrelated_system_execution`: Flags shell execution during routine data or report operations.
+* `authorized_resource_access`: Acknowledges normal, non-destructive reads of expected files.
+* `communication_dispatch_aligned`: Confirms valid dispatch when communication was explicitly requested.
+
+> [!IMPORTANT]
+> **Semantic similarity is NOT the final security decision.**  
+> Semantic compatibility is an essential intelligence signal, but high similarity alone does not prove an action is safe (e.g., an agent can semantically describe a malicious deletion). In Phase 3, these similarity metrics and contextual signals will serve as raw features feeding into the multi-factor Risk Assessment and deterministic Policy engines.
+
+---
+
+## 6. Development Roadmap Across Phases
+
+* **Phase 1 (Completed):** Foundational architecture, repository layout, baseline FastAPI endpoints, hygiene checks, and testing harness.
+* **Phase 2 (Completed):** Intent analyzer, action normalizer, context extraction, sentence embeddings (`all-MiniLM-L6-v2`), consistency analyzer, contextual security signals, and `/analyze` endpoint.
+* **Phase 3 (Upcoming):** Risk scoring engine, behavioral anomaly scoring, and deterministic policy rule engine (ALLOW / REVIEW / BLOCK).
 * **Phase 4:** Human-in-the-loop review dashboard (React/Vite) and agent proxy integration.

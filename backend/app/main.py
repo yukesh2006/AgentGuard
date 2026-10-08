@@ -1,16 +1,19 @@
 """
 AgentGuard - Context-Aware AI Intent Firewall
-Phase 1 Foundation: Minimal FastAPI Application
+Phase 2: Intent and Context Intelligence Layer
 """
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
+from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
+from app.core.config import settings
+from app.api.analyze import router as analyze_router
 
 # Initialize FastAPI application instance
 app = FastAPI(
-    title="AgentGuard API",
-    description="Context-Aware AI Intent Firewall API",
-    version="0.1.0",
+    title=settings.app_name,
+    description=settings.description,
+    version=settings.app_version,
 )
 
 # Enable CORS for local development and future frontend integration
@@ -21,6 +24,18 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Include API routers
+app.include_router(analyze_router)
+
+
+# Global exception handler to prevent leaking raw tracebacks
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception):
+    return JSONResponse(
+        status_code=500,
+        content={"detail": "An internal error occurred during request processing."},
+    )
 
 
 @app.get("/", tags=["Root"])
