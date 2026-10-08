@@ -1,7 +1,7 @@
 # AgentGuard Architecture Specification
 
-> **Phase 5 Status Document**  
-> *Status: Active Agent Interception Layer & Safe Action Simulation*  
+> **Phase 6 Status Document**  
+> *Status: Active Persistent Audit Logging & Security Dashboard*  
 > *Note: Safe simulation only. Real commands, file deletions, and network transfers are strictly prohibited.*
 
 ---
@@ -321,11 +321,85 @@ Each intercepted call produces a uniquely identified, audit-ready structured eve
 
 ---
 
-## 9. Development Roadmap Across Phases
+## 9. Phase 6 — Persistent Audit Logging & Security Dashboard
+
+Phase 6 introduces enterprise-grade persistent security auditing and a professional cybersecurity Security Operations Center (SOC) dashboard.
+
+### 9.1. End-to-End Governance Architecture
+```text
+          AI AGENT
+              │ Proposes Action
+              ▼
+    AGENTGUARD INTERCEPTOR (Phase 5)
+              │
+    ┌─────────┴─────────┐
+    ▼                   ▼
+Intent & Context     Behavioral Anomaly & Risk
+ (Phase 2)                  (Phase 3)
+    └─────────┬─────────┘
+              ▼
+    POLICY DECISION ENGINE (Phase 4)
+              │
+    ┌─────────┼─────────┐
+    ▼         ▼         ▼
+  ALLOW     REVIEW    BLOCK
+    │         │         │
+    ▼         ▼         ▼
+ SAFE      WAIT FOR   REJECT
+SIMULATION  APPROVAL  ACTION
+    └─────────┬─────────┘
+              ▼
+    AUTOMATIC AUDIT LOGGER (Phase 6)
+              │ Redaction / Sanitization
+              ▼
+     SQLITE AUDIT DATABASE (`database/agentguard.db`)
+              │
+    ┌─────────┴─────────┐
+    ▼                   ▼
+Audit REST APIs     React + Vite SOC Dashboard
+ (`/audit/*`)           (Real-Time Analytics)
+```
+
+### 9.2. Clear Component Role Distinctions
+AgentGuard maintains strict separation of responsibilities across its intelligence, decision, logging, and visualization layers:
+
+| Component | Core Responsibility | Guiding Question |
+| :--- | :--- | :--- |
+| **Risk Assessment Engine** | Multi-factor risk calculation | *"How risky is this action given its intent, context, and trajectory?"* |
+| **Policy Decision Engine** | Enforceable security rule evaluation | *"What should AgentGuard do? (ALLOW, REVIEW, or BLOCK)"* |
+| **Safe Action Simulator** | Sandboxed execution modeling | *"Safely demonstrate the allowed operation without touching real systems."* |
+| **Audit Logger** | Persistent, sanitized evidence recording | *"What happened, when, and exactly why was the decision made?"* |
+| **Security Dashboard** | Human-in-the-loop SOC visibility | *"How can security engineers monitor, inspect, and analyze agentic traffic?"* |
+
+### 9.3. SQLite Audit Database Layer
+Audit events are persisted into an SQLite database (`database/agentguard.db`) using the DDL defined in `database/schema.sql`:
+* **Zero Overhead:** Database and parent directory are created automatically on service initialization.
+* **Indexed Queries:** Indexes on `timestamp`, `decision`, `risk_level`, `anomaly_detected`, and `interception_id` ensure millisecond query times for dashboard filtering.
+* **Sensitive Content Sanitization:** Raw bearer tokens, API keys (`sk-...`), and passwords are automatically redacted prior to database write operations.
+
+### 9.4. Audit API Endpoints
+* `GET /audit/events`: Paginated query interface supporting filtering by `decision` (`ALLOW`, `REVIEW`, `BLOCK`), `risk_level` (`LOW`, `MEDIUM`, `HIGH`, `CRITICAL`), and `anomaly_detected` (`true`, `false`).
+* `GET /audit/events/{event_id}`: Detailed inspection by auto-incrementing ID or UUID-based `interception_id`.
+* `GET /audit/stats`: Real-time dashboard statistics (total interceptions, verdict counts, mean risk score, anomaly count, distribution breakdowns).
+* `GET /audit/policies`: Trigger frequency counts across all security policy identifiers.
+
+### 9.5. SOC Security Dashboard
+A React + Vite frontend providing:
+* **Top KPI Stat Cards:** Total Interceptions, Allowed, Under Review, Blocked, High/Critical Threats.
+* **Agent Action Simulator:** An interactive testing sandbox allowing judges to test presets or input custom actions and immediately witness AgentGuard's interception verdict.
+* **Proportional Charts:** Visual risk tier breakdown and policy verdict distributions.
+* **Security Timeline:** Chronological real-time ingestion feed.
+* **Top Triggered Policies:** Frequency ranking of active security guardrails.
+* **Interactive Event Table & Modal:** Clickable audit rows opening complete metadata, user goal, policy reasons, and safe simulation output payloads.
+
+---
+
+## 10. Development Roadmap Across Phases
 
 * **Phase 1 (Completed):** Foundational architecture, repository layout, baseline FastAPI endpoints, hygiene checks, and testing harness.
 * **Phase 2 (Completed):** Intent analyzer, action normalizer, context extraction, sentence embeddings (`all-MiniLM-L6-v2`), consistency analyzer, contextual security signals, and `/analyze` endpoint.
 * **Phase 3 (Completed):** Behavioral history extraction, IsolationForest anomaly detection, resource classification, multi-factor risk scoring engine, explainability generator, and `/risk-assessment` endpoint.
 * **Phase 4 (Completed):** Context-Aware Policy Decision Engine (ALLOW, REVIEW, BLOCK), hierarchical rules, explainability recommendations, and `/policy-decision` endpoint.
 * **Phase 5 (Completed):** Agent Interception Layer, Safe Action Simulator, mock sandboxed outputs, audit events, and `/intercept` endpoint.
-* **Phase 6 (Future):** Interactive administrative review dashboard, persistent database audit logging, and agent framework adapters (LangChain, AutoGen).
+* **Phase 6 (Completed):** Persistent SQLite audit database, automatic interception logging, audit REST APIs, and React + Vite SOC Security Dashboard.
+* **Phase 7 (Future):** Direct agent framework middleware plugins (LangChain, AutoGen, CrewAI) and distributed multi-tenant logging.

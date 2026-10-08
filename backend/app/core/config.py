@@ -4,6 +4,7 @@ AgentGuard Core Configuration and Settings.
 
 import sys
 from pathlib import Path
+from typing import List
 from pydantic import BaseModel
 
 # Ensure project root is available in sys.path for ml module imports
@@ -20,8 +21,19 @@ if str(BACKEND_DIR) not in sys.path:
 class Settings(BaseModel):
     """Application configuration settings."""
     app_name: str = "AgentGuard"
-    app_version: str = "0.2.0"
+    app_version: str = "0.3.0"
     description: str = "Context-Aware AI Intent Firewall"
+
+    # Database Settings
+    database_path: str = str(PROJECT_ROOT / "database" / "agentguard.db")
+
+    # CORS Settings for Frontend
+    cors_origins: List[str] = [
+        "http://localhost:5173",
+        "http://127.0.0.1:5173",
+        "http://localhost:3000",
+        "http://127.0.0.1:3000",
+    ]
 
     # ML / Embedding Settings
     embedding_model_name: str = "all-MiniLM-L6-v2"

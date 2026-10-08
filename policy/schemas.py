@@ -91,3 +91,4 @@ class PolicyDecisionResponse(BaseModel):
     recommendation: str = Field(..., description="Security operational recommendation")
     action: Optional[str] = Field(default=None, description="Evaluated action name")
     target_resource: Optional[str] = Field(default=None, description="Evaluated target resource")
+    anomaly_detected: bool = Field(default=False, description="Flag indicating if action sequence is an anomaly")

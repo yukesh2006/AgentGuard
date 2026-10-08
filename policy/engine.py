@@ -90,10 +90,11 @@ class PolicyEngine:
         rule_result = evaluate_safe_allow_rule(eval_context)
         return self._build_response(rule_result, eval_context)
 
-    def evaluate_request(self, payload: PolicyDecisionRequest) -> PolicyDecisionResponse:
+    def evaluate_request_with_context(
+        self, payload: PolicyDecisionRequest
+    ) -> tuple[PolicyDecisionResponse, Dict[str, Any]]:
         """
-        End-to-end evaluation entry point from an incoming API request.
-        Executes Risk Assessment Engine and evaluates policy rules.
+        Evaluate policy decision and return both the response and the underlying evaluation context.
         """
         # 1. Obtain full risk & intelligence assessment
         risk_result = self.risk_engine.assess_risk(
@@ -108,11 +109,20 @@ class PolicyEngine:
         )
 
         # 2. Evaluate context against security policy hierarchy
-        return self.evaluate_from_risk_context(
+        response = self.evaluate_from_risk_context(
             risk_context=risk_result,
             user_request=payload.user_request,
             target_resource=payload.target_resource,
         )
+        return response, risk_result
+
+    def evaluate_request(self, payload: PolicyDecisionRequest) -> PolicyDecisionResponse:
+        """
+        End-to-end evaluation entry point from an incoming API request.
+        Executes Risk Assessment Engine and evaluates policy rules.
+        """
+        response, _ = self.evaluate_request_with_context(payload)
+        return response
 
     @staticmethod
     def _build_response(
@@ -124,6 +134,7 @@ class PolicyEngine:
         target_resource = eval_context.get("target_resource")
         risk_score = eval_context.get("risk_score", 0.0)
         risk_level = eval_context.get("risk_level", "LOW")
+        anomaly_detected = bool(eval_context.get("behavior", {}).get("is_anomaly", False))
 
         return PolicyDecisionResponse(
             decision=rule_result.decision,
@@ -135,6 +146,7 @@ class PolicyEngine:
             recommendation=rule_result.recommendation,
             action=action_name,
             target_resource=target_resource,
+            anomaly_detected=anomaly_detected,
         )
 
 

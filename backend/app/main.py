@@ -1,6 +1,6 @@
 """
 AgentGuard - Context-Aware AI Intent Firewall
-Phase 4: Context-Aware Policy Decision Engine (ALLOW, REVIEW, BLOCK)
+Phase 6: Persistent Audit Logging & Security Dashboard
 """
 
 from fastapi import FastAPI, Request
@@ -11,6 +11,8 @@ from app.api.analyze import router as analyze_router
 from app.api.risk import router as risk_router
 from app.api.decision import router as decision_router
 from app.api.intercept import router as intercept_router
+from app.api.audit import router as audit_router
+from app.database.database import init_db
 
 # Initialize FastAPI application instance
 app = FastAPI(
@@ -19,7 +21,12 @@ app = FastAPI(
     version=settings.app_version,
 )
 
-# Enable CORS for local development and future frontend integration
+# Initialize SQLite database schema
+init_db()
+
+# Enable CORS for local development and dashboard integration
+origins = settings.cors_origins + ["*"]
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -33,6 +40,7 @@ app.include_router(analyze_router)
 app.include_router(risk_router)
 app.include_router(decision_router)
 app.include_router(intercept_router)
+app.include_router(audit_router)
 
 
 # Global exception handler to prevent leaking raw tracebacks

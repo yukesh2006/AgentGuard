@@ -97,6 +97,8 @@ class InterceptionResponse(BaseModel):
     reason: str = Field(..., description="Detailed policy justification")
     recommendation: str = Field(..., description="Security operational recommendation")
     review_status: ReviewStatusEnum = Field(default=ReviewStatusEnum.NOT_REQUIRED, description="Review workflow status")
+    anomaly_detected: bool = Field(default=False, description="True if behavioral anomaly was flagged")
+    destination: Optional[str] = Field(default=None, description="Target destination if applicable")
     simulation_output: Optional[Dict[str, Any]] = Field(
         default=None,
         description="Mock simulation results for safely allowed actions"

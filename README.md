@@ -26,31 +26,27 @@ Based on these dimensions, AgentGuard produces one of three enforceable decision
 * **REVIEW** — Action contains moderate risk or contextual ambiguity, requiring human-in-the-loop verification before execution.
 * **BLOCK** — Action violates security policies, presents severe risk, or diverges from the user's intended task.
 
----
-
 ## Current Phase
 
-**Phase 5 — Agent Interception & Safe Action Simulation**
+**Phase 6 — Persistent Audit Logging & Security Dashboard**
 
-> **Current Status**: The Agent Interception Layer is active at `POST /intercept` (and alias `POST /agent/intercept`). AgentGuard acts as a security checkpoint between an AI agent's tool decisions and potential action execution. Proposed actions are routed through intent-context intelligence, behavioral anomaly detection, multi-factor risk assessment, and hierarchical policy rules. Permitted actions are safely simulated in an in-memory mock environment with strict safety boundaries.  
+> **Current Status**: AgentGuard features an enterprise-grade SQLite persistent audit log and a real-time React + Vite SOC Security Dashboard. Every intercepted AI agent action is automatically persisted, sanitized, and exposed via REST APIs (`/audit/*`). Security operators can monitor traffic, inspect explanations, analyze risk distributions, and test actions live via the in-dashboard Agent Action Simulator.  
 > *Note: AgentGuard performs active security governance analysis and safe simulation only. It does NOT execute real external commands, file deletions, or network uploads.*
 
 ---
 
-## Agent Interception Architecture
+## AgentGuard Governance & Audit Pipeline
 
 ```text
 USER
   ↓
-AI AGENT
+AI AGENT (Proposes Tool Action)
   ↓
-PROPOSED ACTION
-  ↓
-AGENTGUARD INTERCEPTOR
+AGENTGUARD INTERCEPTOR (Phase 5 Gateway)
   ↓
 Intent + Context Analysis (Phase 2)
   ↓
-Risk Assessment Engine (Phase 3)
+Behavioral Anomaly & Risk Engine (Phase 3)
   ↓
 Policy Decision Engine (Phase 4)
   ↓
@@ -62,12 +58,19 @@ Policy Decision Engine (Phase 4)
        ↓               ↓               ↓
  ACTION RESULT     WAITING_FOR_REVIEW BLOCKED
        ↓
- AUDIT EVENT
+ AUTOMATIC AUDIT LOGGER (Phase 6)
+       ↓ (Sanitization & Redaction)
+ SQLITE AUDIT DATABASE (`database/agentguard.db`)
+       ↓
+┌──────────────────────────────┬──────────────────────────────┐
+│       AUDIT REST APIs        │   REACT + VITE SOC DASHBOARD │
+│  /audit/events, /audit/stats │   Live Metrics, Charts, Sim  │
+└──────────────────────────────┴──────────────────────────────┘
 ```
 
 ### Security Boundary Principle
 > **AgentGuard does not execute agent actions.** It evaluates and intercepts proposed actions before execution.
-> * **ALLOW** = Policy permits **SAFE SIMULATION** (mock sandbox output).
+> * **ALLOW** = Policy permits **SAFE SIMULATION** (in-memory mock output).
 > * **REVIEW** = Human approval is required before execution (`WAITING_FOR_REVIEW`, `execution_permitted: false`).
 > * **BLOCK** = Action is rejected and never simulated (`NOT_EXECUTED`, `execution_permitted: false`).
 
@@ -75,11 +78,11 @@ Policy Decision Engine (Phase 4)
 
 ## Technology Stack
 
-* **Backend:** Python 3.11+, FastAPI, Uvicorn, Pydantic
+* **Backend:** Python 3.11+, FastAPI, Uvicorn, Pydantic, SQLite
 * **AI/ML:** sentence-transformers (`all-MiniLM-L6-v2`), scikit-learn (`IsolationForest`), PyTorch, NumPy, pandas
-* **Frontend (Upcoming Phases):** React, Vite, Modern CSS
-* **Database (Upcoming Phases):** SQLite (for MVP)
-* **Tooling & Environments:** Git/GitHub, Postman, Python Virtual Environments (`venv`)
+* **Frontend:** React 18, Vite, Vanilla CSS (SOC Cybersecurity Dark Theme)
+* **Database:** SQLite (`database/agentguard.db` auto-created from `database/schema.sql`)
+* **Tooling & Environments:** Git/GitHub, Node.js / npm, Python Virtual Environments (`venv`)
 
 ---
 
@@ -92,24 +95,59 @@ AgentGuard/
 │   ├── app/                  # Application source code
 │   │   ├── __init__.py
 │   │   ├── main.py           # FastAPI entrypoint (/ and /health endpoints)
-│   │   ├── api/              # API routers (/analyze, /risk-assessment, /policy-decision, /intercept)
+│   │   ├── api/              # API routers (/analyze, /risk-assessment, /policy-decision, /intercept, /audit)
 │   │   │   ├── analyze.py
 │   │   │   ├── risk.py
 │   │   │   ├── decision.py
-│   │   │   └── intercept.py  # Phase 5 interception endpoint
+│   │   │   ├── intercept.py  # Phase 5 interception endpoint
+│   │   │   └── audit.py      # Phase 6 audit logging & dashboard APIs
+│   │   ├── database/         # Phase 6 SQLite database access layer
+│   │   │   ├── __init__.py
+│   │   │   ├── database.py   # Connection management & auto-initialization
+│   │   │   ├── models.py     # AuditEventRecord & AuditStatsResponse
+│   │   │   └── repository.py # Parameterized DAO queries & metrics aggregation
 │   │   ├── models/           # Pydantic schemas across all phases
 │   │   │   └── interception.py # Phase 5 InterceptionRequest & Response
-│   │   ├── services/         # Orchestration & simulation services
+│   │   ├── services/         # Orchestration, simulation & audit services
 │   │   │   ├── signals.py    # Contextual security signals
-│   │   │   ├── interceptor.py# Phase 5 Agent Interceptor orchestrator
-│   │   │   └── simulator.py  # Phase 5 Safe Action Simulator
+│   │   │   ├── interceptor.py# Agent Interceptor orchestrator
+│   │   │   ├── simulator.py  # Safe Action Simulator
+│   │   │   └── audit.py      # Audit logging & sensitive data sanitization
 │   │   └── core/             # Centralized config, weights & thresholds
-│   └── tests/                # Automated test suite (45 automated tests)
+│   ├── scripts/              # Demonstration scripts
+│   │   └── seed_demo_events.py # Seed realistic audit records safely
+│   └── tests/                # Automated test suite (56 automated tests)
 │       ├── test_main.py      # Phase 1 health and root tests (2 tests)
 │       ├── test_analyze.py   # Phase 2 intent and consistency tests (8 tests)
 │       ├── test_risk.py      # Phase 3 behavioral anomaly & risk tests (10 tests)
 │       ├── test_policy.py    # Phase 4 policy rules & decision tests (11 tests)
-│       └── test_interceptor.py # Phase 5 interception & safety tests (14 tests)
+│       ├── test_interceptor.py # Phase 5 interception & safety tests (14 tests)
+│       └── test_audit.py     # Phase 6 audit persistence & API tests (11 tests)
+│
+├── frontend/                 # Phase 6 React + Vite SOC Security Dashboard
+│   ├── src/
+│   │   ├── components/       # Modular dashboard UI components
+│   │   │   ├── Header.jsx    # Branding & status indicator
+│   │   │   ├── StatCard.jsx  # KPI metrics cards
+│   │   │   ├── RiskChart.jsx # Multi-factor risk breakdown
+│   │   │   ├── DecisionChart.jsx # Policy verdict distributions
+│   │   │   ├── EventTable.jsx# Clickable audit event table
+│   │   │   ├── EventDetails.jsx # Detailed audit record modal
+│   │   │   ├── SecurityTimeline.jsx # Real-time activity feed
+│   │   │   ├── PolicySummary.jsx # Top triggered guardrail analytics
+│   │   │   ├── ActionSimulator.jsx # Judge interactive testing sandbox
+│   │   │   └── Filters.jsx   # Decision, risk, and anomaly filters
+│   │   ├── pages/
+│   │   │   └── Dashboard.jsx # Main dashboard view with auto-sync
+│   │   ├── services/
+│   │   │   └── api.js        # Centralized HTTP API client
+│   │   ├── styles/
+│   │   │   └── dashboard.css # High-contrast cybersecurity theme
+│   │   ├── App.jsx
+│   │   └── main.jsx
+│   ├── index.html
+│   ├── package.json
+│   └── vite.config.js
 │
 ├── policy/                   # Context-Aware Policy Decision Engine (Phase 4)
 │   ├── __init__.py           # Policy package exports
@@ -119,28 +157,19 @@ AgentGuard/
 │
 ├── ml/                       # Machine Learning intelligence modules
 │   ├── intent/               # Intent analysis, embeddings & consistency
-│   │   ├── analyzer.py       # Intent analyzer & prototype matcher
-│   │   ├── action_normalizer.py # Action dictionary & normalization
-│   │   ├── consistency.py    # Intent-action consistency scoring
-│   │   └── embeddings.py     # SentenceTransformer embedding service
-│   │   └── catalog.py        # Reference catalog
-│   ├── context/              # Context tracking & resource type inference
-│   │   └── engine.py         # Structured context engine
-│   ├── anomaly/              # Behavioral anomaly detection
-│   │   ├── features.py       # 10-dimensional behavioral feature extractor
-│   │   └── detector.py       # IsolationForest anomaly detector (synthetic baseline)
-│   └── risk/                 # Multi-factor risk scoring
-│       ├── resource_classifier.py # Sensitivity heuristics (credentials, system, URLs)
-│       └── engine.py         # 0-100 normalized risk engine & explainability
+│   ├── context/              # Context tracking & resource inference
+│   ├── anomaly/              # Behavioral feature extraction & IsolationForest
+│   └── risk/                 # Multi-factor risk scoring engine
 │
-├── database/                 # SQLite storage and database migrations (Upcoming Phase)
-├── frontend/                 # React + Vite administrative dashboard (Upcoming Phase)
-├── data/                     # Sample datasets and evaluation benchmarks
+├── database/                 # SQLite storage
+│   ├── schema.sql            # Canonical database DDL & indexes
+│   └── agentguard.db         # Auto-generated database (git-ignored)
+│
 ├── docs/                     # Documentation and architecture diagrams
 │   └── architecture.md       # High-level security architecture specification
 │
 ├── .env.example              # Sample environment configuration
-├── .gitignore                # Repository ignore rules (protects models & caches)
+├── .gitignore                # Repository ignore rules (protects models, DB & caches)
 ├── README.md                 # Project documentation
 └── requirements.txt          # Python dependencies
 ```
@@ -186,7 +215,15 @@ python -m venv venv
 python -m pip install -r requirements.txt
 ```
 
-### 4. Start FastAPI
+### 4. Seed Demonstration Data (Optional)
+
+To populate the dashboard with initial demonstration records:
+
+```powershell
+python backend/scripts/seed_demo_events.py
+```
+
+### 5. Start FastAPI
 
 Navigate into the `backend/` directory and start the Uvicorn server:
 
@@ -202,13 +239,30 @@ The interactive documentation will be available at:
 * Risk Assessment: `POST http://127.0.0.1:8000/risk-assessment`
 * Policy Decision: `POST http://127.0.0.1:8000/policy-decision` (or alias `POST http://127.0.0.1:8000/decision`)
 * Agent Interception: `POST http://127.0.0.1:8000/intercept` (or alias `POST http://127.0.0.1:8000/agent/intercept`)
+* Audit Event Logs: `GET http://127.0.0.1:8000/audit/events`
+* Audit Statistics: `GET http://127.0.0.1:8000/audit/stats`
+* Policy Analytics: `GET http://127.0.0.1:8000/audit/policies`
 * Swagger UI Docs: [http://127.0.0.1:8000/docs](http://127.0.0.1:8000/docs)
 
 ---
 
-## Running the Tests
+## Running the Security Dashboard Frontend
 
-To run the complete automated test suite across all Phase 1 through Phase 5 components (45 automated tests):
+In a separate terminal, launch the React + Vite dashboard:
+
+```powershell
+cd frontend
+npm install
+npm run dev
+```
+
+Open [http://localhost:5173/](http://localhost:5173/) in your browser to view the real-time SOC Security Dashboard.
+
+---
+
+## Running the Automated Tests
+
+To run the complete automated test suite across all Phase 1 through Phase 6 components (56 automated tests):
 
 ```powershell
 .\venv\Scripts\pytest.exe backend/tests/ -v
