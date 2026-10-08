@@ -30,10 +30,46 @@ Based on these dimensions, AgentGuard produces one of three enforceable decision
 
 ## Current Phase
 
-**Phase 4 — Context-Aware Policy Decision Engine**
+**Phase 5 — Agent Interception & Safe Action Simulation**
 
-> **Current Status**: The Policy Decision Engine is active. AgentGuard evaluates user intent, action semantics, resource sensitivity, behavioral anomaly vectors, and composite risk scores to enforce `ALLOW`, `REVIEW`, and `BLOCK` policy decisions via `POST /policy-decision` (and alias `POST /decision`).  
-> *Note: AgentGuard performs active security governance analysis and does NOT execute real external commands, file deletions, or network uploads.*
+> **Current Status**: The Agent Interception Layer is active at `POST /intercept` (and alias `POST /agent/intercept`). AgentGuard acts as a security checkpoint between an AI agent's tool decisions and potential action execution. Proposed actions are routed through intent-context intelligence, behavioral anomaly detection, multi-factor risk assessment, and hierarchical policy rules. Permitted actions are safely simulated in an in-memory mock environment with strict safety boundaries.  
+> *Note: AgentGuard performs active security governance analysis and safe simulation only. It does NOT execute real external commands, file deletions, or network uploads.*
+
+---
+
+## Agent Interception Architecture
+
+```text
+USER
+  ↓
+AI AGENT
+  ↓
+PROPOSED ACTION
+  ↓
+AGENTGUARD INTERCEPTOR
+  ↓
+Intent + Context Analysis (Phase 2)
+  ↓
+Risk Assessment Engine (Phase 3)
+  ↓
+Policy Decision Engine (Phase 4)
+  ↓
+┌──────────────┬────────────────┬──────────────┐
+│    ALLOW     │     REVIEW     │    BLOCK     │
+└──────┬───────┴───────┬────────┴──────┬───────┘
+       ↓               ↓               ↓
+  SAFE SIMULATION   HUMAN APPROVAL   REJECT
+       ↓               ↓               ↓
+ ACTION RESULT     WAITING_FOR_REVIEW BLOCKED
+       ↓
+ AUDIT EVENT
+```
+
+### Security Boundary Principle
+> **AgentGuard does not execute agent actions.** It evaluates and intercepts proposed actions before execution.
+> * **ALLOW** = Policy permits **SAFE SIMULATION** (mock sandbox output).
+> * **REVIEW** = Human approval is required before execution (`WAITING_FOR_REVIEW`, `execution_permitted: false`).
+> * **BLOCK** = Action is rejected and never simulated (`NOT_EXECUTED`, `execution_permitted: false`).
 
 ---
 
@@ -56,15 +92,24 @@ AgentGuard/
 │   ├── app/                  # Application source code
 │   │   ├── __init__.py
 │   │   ├── main.py           # FastAPI entrypoint (/ and /health endpoints)
-│   │   ├── api/              # API routers (/analyze, /risk-assessment, /policy-decision)
+│   │   ├── api/              # API routers (/analyze, /risk-assessment, /policy-decision, /intercept)
+│   │   │   ├── analyze.py
+│   │   │   ├── risk.py
+│   │   │   ├── decision.py
+│   │   │   └── intercept.py  # Phase 5 interception endpoint
 │   │   ├── models/           # Pydantic schemas across all phases
-│   │   ├── services/         # Contextual security signals service
+│   │   │   └── interception.py # Phase 5 InterceptionRequest & Response
+│   │   ├── services/         # Orchestration & simulation services
+│   │   │   ├── signals.py    # Contextual security signals
+│   │   │   ├── interceptor.py# Phase 5 Agent Interceptor orchestrator
+│   │   │   └── simulator.py  # Phase 5 Safe Action Simulator
 │   │   └── core/             # Centralized config, weights & thresholds
-│   └── tests/                # Automated test suite (31 automated tests)
-│       ├── test_main.py      # Phase 1 health and root tests
-│       ├── test_analyze.py   # Phase 2 intent and consistency tests
-│       ├── test_risk.py      # Phase 3 behavioral anomaly & risk tests
-│       └── test_policy.py    # Phase 4 policy rules & decision tests
+│   └── tests/                # Automated test suite (45 automated tests)
+│       ├── test_main.py      # Phase 1 health and root tests (2 tests)
+│       ├── test_analyze.py   # Phase 2 intent and consistency tests (8 tests)
+│       ├── test_risk.py      # Phase 3 behavioral anomaly & risk tests (10 tests)
+│       ├── test_policy.py    # Phase 4 policy rules & decision tests (11 tests)
+│       └── test_interceptor.py # Phase 5 interception & safety tests (14 tests)
 │
 ├── policy/                   # Context-Aware Policy Decision Engine (Phase 4)
 │   ├── __init__.py           # Policy package exports
@@ -78,6 +123,7 @@ AgentGuard/
 │   │   ├── action_normalizer.py # Action dictionary & normalization
 │   │   ├── consistency.py    # Intent-action consistency scoring
 │   │   └── embeddings.py     # SentenceTransformer embedding service
+│   │   └── catalog.py        # Reference catalog
 │   ├── context/              # Context tracking & resource type inference
 │   │   └── engine.py         # Structured context engine
 │   ├── anomaly/              # Behavioral anomaly detection
@@ -87,8 +133,8 @@ AgentGuard/
 │       ├── resource_classifier.py # Sensitivity heuristics (credentials, system, URLs)
 │       └── engine.py         # 0-100 normalized risk engine & explainability
 │
-├── database/                 # SQLite storage and database migrations (Phase 5)
-├── frontend/                 # React + Vite administrative dashboard (Phase 5)
+├── database/                 # SQLite storage and database migrations (Upcoming Phase)
+├── frontend/                 # React + Vite administrative dashboard (Upcoming Phase)
 ├── data/                     # Sample datasets and evaluation benchmarks
 ├── docs/                     # Documentation and architecture diagrams
 │   └── architecture.md       # High-level security architecture specification
@@ -101,17 +147,16 @@ AgentGuard/
 
 ---
 
-## Policy Decision Scenarios
+## Interception Demo Scenarios
 
-| Scenario | User Request | Proposed Action | Target Resource | Decision | Triggered Policies | Human Review? | Reason Summary |
-| :--- | :--- | :--- | :--- | :---: | :--- | :---: | :--- |
-| **1. Aligned Reporting** | "Prepare my monthly project report" | `read_project_file` | `project_data.csv` | **ALLOW** | `LOW_RISK_ALIGNED_ACTION` | `No` | Read action is consistent with reporting goal; low risk. |
-| **2. Destructive Mismatch** | "Prepare my monthly project report" | `delete_project_file` | `project_data.csv` | **BLOCK** | `DESTRUCTIVE_ACTION`<br>`INTENT_ACTION_MISMATCH` | `No` | Action is destructive while user goal is non-destructive reporting. |
-| **3. User Cleanup Intent** | "Clean up my project files" | `delete_project_file` | `project_data.csv` | **REVIEW** | `DESTRUCTIVE_ACTION` | `Yes` | Action is destructive; user justified it but requires explicit human confirmation. |
-| **4. External Exfiltration** | "Prepare my monthly project report" | `upload_external` | `https://unknown-server.com/upload` | **BLOCK** | `SENSITIVE_EXTERNAL_TRANSFER`<br>`INTENT_ACTION_MISMATCH` | `No` | Unauthorized outbound data upload unrelated to stated goal. |
-| **5. Credential Access** | "Check my project configuration" | `read_project_file` | `credentials.txt` | **REVIEW** | `SENSITIVE_RESOURCE_ACCESS` | `Yes` | Resource contains credentials and intent does not explicitly justify access. |
-| **6. Shell Escalation** | "Prepare my monthly project report" | `execute_command` | `bash` | **BLOCK** | `CRITICAL_RISK_BLOCK`<br>`SYSTEM_COMMAND_RESTRICTION`<br>`BEHAVIORAL_ANOMALY` | `No` | Critical risk; shell command execution without administrative intent. |
-| **7. Legitimate Email** | "Send the completed report to my professor" | `send_email` | `professor@university.edu` | **ALLOW** | `LOW_RISK_ALIGNED_ACTION` | `No` | Email dispatch directly supports user's communication goal. |
+| Scenario | User Goal | Agent Action | Target Resource | Decision | Simulation Status | Permitted? | Triggered Policies | Reason Summary |
+| :--- | :--- | :--- | :--- | :---: | :---: | :---: | :--- | :--- |
+| **1. Aligned Reporting** | "Prepare my monthly project report." | `read_project_file` | `project_data.csv` | **ALLOW** | `SIMULATED_SUCCESS` | `true` | `LOW_RISK_ALIGNED_ACTION` | Action consistent with reporting goal; safely simulated mock read. |
+| **2. Destructive Mismatch** | "Prepare my monthly project report." | `delete_project_file` | `project_data.csv` | **BLOCK** | `NOT_EXECUTED` | `false` | `DESTRUCTIVE_ACTION`<br>`INTENT_ACTION_MISMATCH` | Action is destructive while user goal is non-destructive reporting. |
+| **3. External Exfiltration** | "Prepare my monthly project report." | `upload_external` | `unknown_external_server` | **BLOCK** | `NOT_EXECUTED` | `false` | `SENSITIVE_EXTERNAL_TRANSFER`<br>`INTENT_ACTION_MISMATCH` | Outbound data transmission unrelated to stated goal; completely blocked. |
+| **4. Sensitive Credentials** | "Check my project configuration." | `read_project_file` | `credentials.txt` | **REVIEW** | `WAITING_FOR_REVIEW` | `false` | `SENSITIVE_RESOURCE_ACCESS` | Sensitive credentials require human confirmation before access. |
+| **5. Shell Escalation** | "Prepare my monthly project report." | `execute_command` | `bash` | **BLOCK** | `NOT_EXECUTED` | `false` | `SYSTEM_COMMAND_RESTRICTION`<br>`CRITICAL_RISK_BLOCK` | Critical risk; shell execution strictly blocked from running. |
+| **6. Legitimate Email** | "Send the completed report to my professor." | `send_email` | `professor@university.edu` | **ALLOW** | `SIMULATED_SUCCESS` | `true` | `LOW_RISK_ALIGNED_ACTION` | Email dispatch supports user goal; safely simulated mock dispatch. |
 
 ---
 
@@ -156,13 +201,14 @@ The interactive documentation will be available at:
 * Intent Analysis: `POST http://127.0.0.1:8000/analyze`
 * Risk Assessment: `POST http://127.0.0.1:8000/risk-assessment`
 * Policy Decision: `POST http://127.0.0.1:8000/policy-decision` (or alias `POST http://127.0.0.1:8000/decision`)
+* Agent Interception: `POST http://127.0.0.1:8000/intercept` (or alias `POST http://127.0.0.1:8000/agent/intercept`)
 * Swagger UI Docs: [http://127.0.0.1:8000/docs](http://127.0.0.1:8000/docs)
 
 ---
 
 ## Running the Tests
 
-To run the complete automated test suite across all Phase 1, Phase 2, Phase 3, and Phase 4 components:
+To run the complete automated test suite across all Phase 1 through Phase 5 components (45 automated tests):
 
 ```powershell
 .\venv\Scripts\pytest.exe backend/tests/ -v

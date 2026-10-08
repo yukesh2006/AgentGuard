@@ -1,8 +1,8 @@
 # AgentGuard Architecture Specification
 
-> **Phase 4 Status Document**  
-> *Status: Active Context-Aware Policy Decision Engine (ALLOW, REVIEW, BLOCK)*  
-> *Note: Production proxy interceptors and UI dashboard integration belong to subsequent stages.*
+> **Phase 5 Status Document**  
+> *Status: Active Agent Interception Layer & Safe Action Simulation*  
+> *Note: Safe simulation only. Real commands, file deletions, and network transfers are strictly prohibited.*
 
 ---
 
@@ -207,10 +207,125 @@ Policies are evaluated according to a strict priority hierarchy:
 
 ---
 
-## 8. Development Roadmap Across Phases
+## 8. Phase 5 — Agent Interception & Safe Action Simulation
+
+Phase 5 operationalizes AgentGuard from a passive advisory analyzer into an **active interception gateway** sitting directly between an AI agent and external execution environments, deployed at `POST /intercept` (and alias `POST /agent/intercept`).
+
+### 8.1. Why an Interception Layer Is Needed
+Autonomous AI agents reason, generate execution plans, and invoke tool functions. Without an intermediary interception layer, a compromised or hallucinating agent directly dispatches operations to system shells, databases, file APIs, or remote endpoints.
+
+AgentGuard acts as a **mandatory security checkpoint**:
+1. The AI agent proposes an action instead of executing it directly.
+2. The AgentGuard Interceptor captures the proposal before any system call occurs.
+3. The proposed action is routed through the multi-stage intelligence pipeline:
+   - Intent & Context Analysis (Phase 2)
+   - Behavioral Anomaly & Multi-Factor Risk Assessment (Phase 3)
+   - Hierarchical Policy Decision Engine (Phase 4)
+4. Only if policy explicitly permits does the action proceed to safe simulation.
+
+```text
+          AI AGENT
+              │
+              │ "I propose to perform action X on resource Y"
+              ▼
+       ┌───────────────┐
+       │  AGENTGUARD   │
+       │  INTERCEPTOR  │
+       └───────┬───────┘
+               ▼
+        Intent + Context Analysis (Phase 2)
+               ▼
+        Behavioral Anomaly & Risk (Phase 3)
+               ▼
+         Policy Decision Engine (Phase 4)
+               ▼
+       ┌───────┼────────┐
+       ▼       ▼        ▼
+     ALLOW   REVIEW   BLOCK
+       │       │        │
+       ▼       ▼        ▼
+   SIMULATE  WAIT     REJECT
+    SAFELY   FOR       ACTION
+             REVIEW
+```
+
+### 8.2. Zero Duplication Architecture
+The interceptor (`backend/app/services/interceptor.py`) does **not** duplicate intelligence or policy logic:
+* Intent extraction, sentence embeddings, and consistency analysis are reused from `ml/intent/` and `ml/context/`.
+* Behavioral sequence feature extraction and IsolationForest anomaly scoring are reused from `ml/anomaly/`.
+* Composite risk scoring and factor attribution are reused from `ml/risk/`.
+* Policy hierarchy and rule evaluation are reused from `policy/engine.py`.
+The interceptor serves strictly as the orchestration and simulation boundary layer.
+
+### 8.3. Interception Decision Flows
+
+#### 1. ALLOW Flow
+* **Condition:** Action aligns with user intent, risk is low, and no security policy triggers.
+* **Interceptor Action:** Invokes `SafeActionSimulator.simulate()`.
+* **Outcome:** `simulation_status: SIMULATED_SUCCESS`, `execution_permitted: true`.
+* **Safety:** Safe mock responses (e.g., simulated file read summary, mock email dispatch confirmation) are generated in-memory. No real file is read or modified.
+
+#### 2. REVIEW Flow
+* **Condition:** Action touches sensitive resources (`credentials.txt`), involves user-requested deletions, or exhibits moderate ambiguity.
+* **Interceptor Action:** Execution is suspended pending supervisor approval.
+* **Outcome:** `simulation_status: WAITING_FOR_REVIEW`, `execution_permitted: false`, `review_status: PENDING`.
+* **Safety:** The proposed action is halted immediately. Under no circumstances is the simulated action executed before human sign-off.
+
+#### 3. BLOCK Flow
+* **Condition:** Critical risk, system command execution (`bash`, `rm`), unauthorized external data upload (`upload_external`), or intent mismatch.
+* **Interceptor Action:** Action is rejected with zero simulation.
+* **Outcome:** `simulation_status: NOT_EXECUTED`, `execution_permitted: false`.
+* **Safety:** The requested tool is completely denied.
+
+### 8.4. Safe Action Simulator & Hard Safety Boundaries
+
+> [!CAUTION]
+> **Core Safety Principle:** AgentGuard NEVER performs real potentially dangerous operations.
+> Under no circumstances does AgentGuard execute shell commands, delete local files, access host credential vaults, or make outbound HTTP exfiltration requests.
+
+The `SafeActionSimulator` enforces strict code-level guardrails:
+* **Shell Commands (`execute_command`):** Hardcoded guardrail returns `NOT_EXECUTED` (`execution_permitted: false`).
+* **Destructive Deletions (`delete_project_file`):** Hardcoded guardrail returns `SIMULATION_ONLY` with dry-run flags; local filesystem is never modified.
+* **Network Uploads (`upload_external`):** Hardcoded guardrail returns `NOT_EXECUTED`; zero network packets are transmitted.
+* **Credentials Files:** Blocked or placed in `WAITING_FOR_REVIEW`; files are never opened.
+
+### 8.5. Audit-Friendly Interception Event Schema
+Each intercepted call produces a uniquely identified, audit-ready structured event:
+```json
+{
+  "interception_id": "AG-2026-4BB184C0",
+  "timestamp": "2026-10-09T00:36:13.114022+00:00",
+  "decision": "ALLOW",
+  "risk_score": 10.0,
+  "risk_level": "LOW",
+  "requires_human_review": false,
+  "action": "read_project_file",
+  "target_resource": "project_data.csv",
+  "simulation_status": "SIMULATED_SUCCESS",
+  "execution_permitted": true,
+  "message": "Action allowed by AgentGuard and safely simulated.",
+  "triggered_policies": [
+    "LOW_RISK_ALIGNED_ACTION"
+  ],
+  "reason": "The requested 'read_project_file' operation is consistent with the user's stated goal and presents low security risk.",
+  "recommendation": "Allow action execution through the security gateway.",
+  "review_status": "NOT_REQUIRED",
+  "simulation_output": {
+    "operation": "read_project_file",
+    "simulated_target": "project_data.csv",
+    "simulated_records_found": 150,
+    "status": "simulated_read_ok"
+  }
+}
+```
+
+---
+
+## 9. Development Roadmap Across Phases
 
 * **Phase 1 (Completed):** Foundational architecture, repository layout, baseline FastAPI endpoints, hygiene checks, and testing harness.
 * **Phase 2 (Completed):** Intent analyzer, action normalizer, context extraction, sentence embeddings (`all-MiniLM-L6-v2`), consistency analyzer, contextual security signals, and `/analyze` endpoint.
 * **Phase 3 (Completed):** Behavioral history extraction, IsolationForest anomaly detection, resource classification, multi-factor risk scoring engine, explainability generator, and `/risk-assessment` endpoint.
 * **Phase 4 (Completed):** Context-Aware Policy Decision Engine (ALLOW, REVIEW, BLOCK), hierarchical rules, explainability recommendations, and `/policy-decision` endpoint.
-* **Phase 5 (Future):** Interactive administrative review dashboard, agent proxy integration, and persistent audit database.
+* **Phase 5 (Completed):** Agent Interception Layer, Safe Action Simulator, mock sandboxed outputs, audit events, and `/intercept` endpoint.
+* **Phase 6 (Future):** Interactive administrative review dashboard, persistent database audit logging, and agent framework adapters (LangChain, AutoGen).

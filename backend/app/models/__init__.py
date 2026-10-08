@@ -13,6 +13,12 @@ from app.models.schemas import (
     RiskFactor,
     BehaviorResult,
 )
+from app.models.interception import (
+    InterceptionRequest,
+    InterceptionResponse,
+    SimulationStatusEnum,
+    ReviewStatusEnum,
+)
 
 __all__ = [
     "AnalyzeRequest",
@@ -26,4 +32,8 @@ __all__ = [
     "RiskAssessmentResponse",
     "RiskFactor",
     "BehaviorResult",
+    "InterceptionRequest",
+    "InterceptionResponse",
+    "SimulationStatusEnum",
+    "ReviewStatusEnum",
 ]

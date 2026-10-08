@@ -10,6 +10,7 @@ from app.core.config import settings
 from app.api.analyze import router as analyze_router
 from app.api.risk import router as risk_router
 from app.api.decision import router as decision_router
+from app.api.intercept import router as intercept_router
 
 # Initialize FastAPI application instance
 app = FastAPI(
@@ -31,6 +32,7 @@ app.add_middleware(
 app.include_router(analyze_router)
 app.include_router(risk_router)
 app.include_router(decision_router)
+app.include_router(intercept_router)
 
 
 # Global exception handler to prevent leaking raw tracebacks
