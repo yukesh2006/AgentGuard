@@ -13,7 +13,9 @@ const isLocalhost = typeof window !== 'undefined' && (
 
 const API_BASE = (envApiBase && envApiBase.trim() !== '')
   ? envApiBase.replace(/\/+$/, '')
-  : (isLocalhost ? 'http://127.0.0.1:8000' : '');
+  : (isLocalhost
+    ? (typeof window !== 'undefined' && window.location.port === '5173' ? '' : 'http://127.0.0.1:8000')
+    : '');
 
 if (!API_BASE && !isLocalhost && typeof window !== 'undefined') {
   console.warn(

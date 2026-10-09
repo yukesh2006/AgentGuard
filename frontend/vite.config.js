@@ -8,6 +8,8 @@ export default defineConfig({
     proxy: {
       '/audit': 'http://127.0.0.1:8000',
       '/intercept': 'http://127.0.0.1:8000',
+      '/explain': 'http://127.0.0.1:8000',
+      '/security': 'http://127.0.0.1:8000',
       '/health': 'http://127.0.0.1:8000',
     },
   },
