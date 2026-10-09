@@ -125,39 +125,44 @@ export default function ActionSimulator({ onInterceptionComplete }) {
         Select a demonstration preset or enter custom agent action parameters:
       </div>
 
-      <div className="preset-pills">
+      <div className="preset-pills" role="group" aria-label="Demonstration Presets">
         {PRESETS.map((p, idx) => (
           <button
             key={idx}
             type="button"
             className="preset-pill"
             onClick={() => applyPreset(p)}
+            aria-label={`Select demonstration preset: ${p.name}`}
           >
             {p.name}
           </button>
         ))}
       </div>
 
-      <form onSubmit={handleIntercept}>
+      <form onSubmit={handleIntercept} aria-label="AI Agent Action Interception Form">
         <div className="simulator-form">
           <div className="form-group">
-            <label>User Goal / Task Intent</label>
+            <label htmlFor="input-user-goal">User Goal / Task Intent</label>
             <input
+              id="input-user-goal"
               type="text"
               className="form-input"
               value={goal}
               onChange={(e) => setGoal(e.target.value)}
               placeholder="e.g. Prepare monthly project report"
+              aria-required="true"
               required
             />
           </div>
 
           <div className="form-group">
-            <label>Proposed Agent Action</label>
+            <label htmlFor="select-agent-action">Proposed Agent Action</label>
             <select
+              id="select-agent-action"
               className="form-select"
               value={action}
               onChange={(e) => setAction(e.target.value)}
+              aria-label="Proposed Agent Action identifier"
             >
               <option value="read_project_file">read_project_file</option>
               <option value="delete_project_file">delete_project_file</option>
@@ -172,25 +177,29 @@ export default function ActionSimulator({ onInterceptionComplete }) {
           </div>
 
           <div className="form-group">
-            <label>Target Resource</label>
+            <label htmlFor="input-target-resource">Target Resource</label>
             <input
+              id="input-target-resource"
               type="text"
               className="form-input"
               value={resource}
               onChange={(e) => setResource(e.target.value)}
               placeholder="e.g. project_data.csv"
+              aria-required="true"
               required
             />
           </div>
 
           <div className="form-group">
-            <label>Destination (Optional)</label>
+            <label htmlFor="input-destination">Destination (Optional)</label>
             <input
+              id="input-destination"
               type="text"
               className="form-input"
               value={destination}
               onChange={(e) => setDestination(e.target.value)}
               placeholder="e.g. https://server.com/upload"
+              aria-label="Optional external destination URL or email"
             />
           </div>
         </div>
@@ -201,6 +210,7 @@ export default function ActionSimulator({ onInterceptionComplete }) {
           className="btn-intercept"
           id="btn-analyze-action"
           disabled={loading || !goal.trim() || !resource.trim()}
+          aria-label="Intercept and Analyze AI Agent Action"
         >
           {loading ? 'INTERCEPTING & ANALYZING...' : 'ANALYZE ACTION'}
         </button>

@@ -36,6 +36,16 @@ export default function EventDetails({ event, onClose }) {
     }
   }, [event]);
 
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') {
+        onClose();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [onClose]);
+
   if (!event) return null;
 
   const decision = trace?.final_decision || event.decision;
@@ -46,8 +56,14 @@ export default function EventDetails({ event, onClose }) {
   const riskFactors = trace?.risk_factors || [];
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-card trace-modal" onClick={(e) => e.stopPropagation()}>
+    <div className="modal-overlay" onClick={onClose} role="presentation">
+      <div
+        className="modal-card trace-modal"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="modal-trace-title"
+        onClick={(e) => e.stopPropagation()}
+      >
         {/* Modal Header */}
         <div className="modal-header">
           <div>
@@ -55,7 +71,7 @@ export default function EventDetails({ event, onClose }) {
               <span className={`verdict-badge ${decision.toLowerCase()}`}>
                 {decision}
               </span>
-              <h2 style={{ fontSize: '1.25rem', fontFamily: 'var(--font-mono)' }}>
+              <h2 id="modal-trace-title" style={{ fontSize: '1.25rem', fontFamily: 'var(--font-mono)' }}>
                 {event.interception_id}
               </h2>
               {confidence && (
@@ -68,7 +84,7 @@ export default function EventDetails({ event, onClose }) {
               Recorded at: {new Date(event.timestamp).toLocaleString()}
             </div>
           </div>
-          <button className="modal-close" onClick={onClose} aria-label="Close modal">
+          <button className="modal-close" onClick={onClose} aria-label="Close security details dialog" type="button">
             &times;
           </button>
         </div>

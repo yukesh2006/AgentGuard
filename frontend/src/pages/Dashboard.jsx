@@ -66,7 +66,7 @@ export default function Dashboard() {
   }, [loadDashboardData]);
 
   return (
-    <div className="dashboard-container">
+    <main id="main-content" className="dashboard-container" role="main" aria-label="AgentGuard Security Operations Dashboard">
       <Header onRefresh={() => loadDashboardData(false)} loading={loading} />
 
       {error && (
@@ -164,6 +164,6 @@ export default function Dashboard() {
           onClose={() => setSelectedEvent(null)}
         />
       )}
-    </div>
+    </main>
   );
 }

@@ -46,6 +46,8 @@ origin_regex = os.getenv("CORS_ORIGIN_REGEX") or (
     else None
 )
 
+from fastapi.middleware.gzip import GZipMiddleware
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"] if allow_all else cors_origins,
@@ -54,6 +56,21 @@ app.add_middleware(
     allow_methods=["GET", "POST", "OPTIONS"],
     allow_headers=["*"],
 )
+
+# Enterprise Efficiency: GZip response compression
+app.add_middleware(GZipMiddleware, minimum_size=500)
+
+
+# Enterprise Security Headers Middleware
+@app.middleware("http")
+async def add_security_headers(request: Request, call_next):
+    response = await call_next(request)
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["X-Frame-Options"] = "DENY"
+    response.headers["X-XSS-Protection"] = "1; mode=block"
+    response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+    response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
+    return response
 
 # Include API routers across all phases
 app.include_router(analyze_router)

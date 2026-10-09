@@ -10,7 +10,7 @@ export default function DecisionChart({ distribution = {}, total = 0 }) {
   const safeTotal = total > 0 ? total : 1;
 
   return (
-    <div className="dashboard-card">
+    <div className="dashboard-card" role="region" aria-label="Policy Verdict Distribution Breakdown">
       <div className="card-title">
         <span>Policy Verdict Distribution</span>
         <span className="card-subtitle">Enforced Gateway Actions</span>
@@ -26,7 +26,14 @@ export default function DecisionChart({ distribution = {}, total = 0 }) {
                   {v.count} <span style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>({pct}%)</span>
                 </span>
               </div>
-              <div className="bar-track">
+              <div
+                className="bar-track"
+                role="progressbar"
+                aria-valuenow={pct}
+                aria-valuemin="0"
+                aria-valuemax="100"
+                aria-label={`${v.label}: ${v.count} events (${pct} percent)`}
+              >
                 <div
                   className={`bar-fill ${v.class}`}
                   style={{ width: `${pct}%` }}

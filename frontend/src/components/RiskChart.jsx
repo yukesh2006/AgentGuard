@@ -11,7 +11,7 @@ export default function RiskChart({ distribution = {}, total = 0 }) {
   const safeTotal = total > 0 ? total : 1;
 
   return (
-    <div className="dashboard-card">
+    <div className="dashboard-card" role="region" aria-label="Risk Assessment Threat Level Breakdown">
       <div className="card-title">
         <span>Risk Assessment Breakdown</span>
         <span className="card-subtitle">Multi-Factor Threat Levels</span>
@@ -27,7 +27,14 @@ export default function RiskChart({ distribution = {}, total = 0 }) {
                   {lvl.count} <span style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>({pct}%)</span>
                 </span>
               </div>
-              <div className="bar-track">
+              <div
+                className="bar-track"
+                role="progressbar"
+                aria-valuenow={pct}
+                aria-valuemin="0"
+                aria-valuemax="100"
+                aria-label={`${lvl.label}: ${lvl.count} events (${pct} percent)`}
+              >
                 <div
                   className={`bar-fill ${lvl.class}`}
                   style={{ width: `${pct}%` }}
