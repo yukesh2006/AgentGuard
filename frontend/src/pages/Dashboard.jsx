@@ -8,8 +8,9 @@ import EventDetails from '../components/EventDetails';
 import SecurityTimeline from '../components/SecurityTimeline';
 import PolicySummary from '../components/PolicySummary';
 import ActionSimulator from '../components/ActionSimulator';
+import SecurityIntelligence from '../components/SecurityIntelligence';
 import Filters from '../components/Filters';
-import { getAuditStats, getAuditEvents, getPolicyStats } from '../services/api';
+import { getAuditStats, getAuditEvents, getPolicyStats, getSecurityIntelligence } from '../services/api';
 
 export default function Dashboard() {
   const [stats, setStats] = useState({
@@ -27,6 +28,7 @@ export default function Dashboard() {
 
   const [events, setEvents] = useState([]);
   const [policies, setPolicies] = useState({});
+  const [intelligence, setIntelligence] = useState(null);
   const [filters, setFilters] = useState({
     decision: 'ALL',
     risk_level: 'ALL',
@@ -42,14 +44,16 @@ export default function Dashboard() {
   const loadDashboardData = useCallback(async (isSilent = false) => {
     if (!isSilent) setLoading(true);
     try {
-      const [statsData, eventsData, policyData] = await Promise.all([
+      const [statsData, eventsData, policyData, intelData] = await Promise.all([
         getAuditStats(),
         getAuditEvents(filters),
         getPolicyStats(),
+        getSecurityIntelligence(),
       ]);
       setStats(statsData);
       setEvents(eventsData);
       setPolicies(policyData);
+      setIntelligence(intelData);
       setError(null);
     } catch (err) {
       console.error('Failed to load dashboard data:', err);
@@ -124,6 +128,9 @@ export default function Dashboard() {
 
       {/* Live Agent Action Simulator (Hackathon Judge Testing Sandbox) */}
       <ActionSimulator onInterceptionComplete={() => loadDashboardData(true)} />
+
+      {/* Security Intelligence & Threat Pattern Detection */}
+      <SecurityIntelligence intelligence={intelligence} />
 
       {/* Security Analytics Visual Charts */}
       <div className="charts-grid">

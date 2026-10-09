@@ -11,7 +11,7 @@ from app.database.models import AuditEventRecord, AuditEventCreate, AuditStatsRe
 # Sanitization patterns for sensitive data masking in audit logs
 SENSITIVE_PATTERNS = [
     (re.compile(r"(?i)(bearer\s+)[A-Za-z0-9_\-\.]{15,}"), r"\1[REDACTED_TOKEN]"),
-    (re.compile(r"(?i)\b(sk-[a-zA-Z0-9]{16,})\b"), r"[REDACTED_API_KEY]"),
+    (re.compile(r"(?i)\b(sk-[a-zA-Z0-9_\-]{12,})\b"), r"[REDACTED_API_KEY]"),
     (re.compile(r"(?i)\b(password|passwd|secret|api_key|access_token)\s*[:=]\s*['\"]?([^\s'\",]{4,})['\"]?"), r"\1=[REDACTED]"),
 ]
 

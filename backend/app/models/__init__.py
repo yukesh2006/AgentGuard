@@ -19,6 +19,13 @@ from app.models.interception import (
     SimulationStatusEnum,
     ReviewStatusEnum,
 )
+from app.models.decision_trace import (
+    DecisionTrace,
+    ExplainResponse,
+    DecisionConfidence,
+    ReasoningChainStep,
+    RiskFactorContribution,
+)
 
 __all__ = [
     "AnalyzeRequest",
@@ -36,4 +43,9 @@ __all__ = [
     "InterceptionResponse",
     "SimulationStatusEnum",
     "ReviewStatusEnum",
+    "DecisionTrace",
+    "ExplainResponse",
+    "DecisionConfidence",
+    "ReasoningChainStep",
+    "RiskFactorContribution",
 ]

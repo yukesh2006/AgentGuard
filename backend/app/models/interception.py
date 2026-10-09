@@ -103,3 +103,7 @@ class InterceptionResponse(BaseModel):
         default=None,
         description="Mock simulation results for safely allowed actions"
     )
+    decision_trace: Optional[Dict[str, Any]] = Field(
+        default=None,
+        description="Complete Phase 7 explainable AI decision trace if requested"
+    )

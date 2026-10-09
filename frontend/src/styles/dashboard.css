@@ -734,3 +734,451 @@ body {
     grid-column: span 1;
   }
 }
+
+/* ==============================================================================
+   Phase 7: Decision Trace & Security Intelligence Styling
+   ============================================================================== */
+
+.trace-modal {
+  max-width: 860px !important;
+}
+
+/* Qualitative Decision Confidence */
+.confidence-badge {
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  padding: 0.25rem 0.65rem;
+  border-radius: 20px;
+  text-transform: uppercase;
+  font-family: var(--font-mono);
+}
+
+.confidence-badge.confidence-high {
+  background: rgba(16, 185, 129, 0.15);
+  color: #34d399;
+  border: 1px solid rgba(16, 185, 129, 0.4);
+}
+
+.confidence-badge.confidence-medium {
+  background: rgba(245, 158, 11, 0.15);
+  color: #fbbf24;
+  border: 1px solid rgba(245, 158, 11, 0.4);
+}
+
+.confidence-badge.confidence-low {
+  background: rgba(239, 68, 68, 0.15);
+  color: #f87171;
+  border: 1px solid rgba(239, 68, 68, 0.4);
+}
+
+.confidence-disclaimer {
+  background: rgba(15, 23, 42, 0.6);
+  border: 1px solid var(--border-subtle);
+  border-left: 3px solid var(--accent-blue);
+  padding: 0.65rem 0.85rem;
+  border-radius: 6px;
+  font-size: 0.78rem;
+  color: var(--text-secondary);
+  margin-bottom: 1.25rem;
+}
+
+/* Section 1: Security Explanation Card */
+.explanation-card {
+  border-radius: 8px;
+  padding: 1rem 1.25rem;
+  margin-bottom: 1.5rem;
+  border: 1px solid var(--border-color);
+  background: var(--bg-primary);
+}
+
+.explanation-card.decision-allow {
+  border-left: 4px solid var(--color-allow);
+  background: linear-gradient(90deg, rgba(16, 185, 129, 0.08), transparent);
+}
+
+.explanation-card.decision-review {
+  border-left: 4px solid var(--color-review);
+  background: linear-gradient(90deg, rgba(245, 158, 11, 0.08), transparent);
+}
+
+.explanation-card.decision-block {
+  border-left: 4px solid var(--color-block);
+  background: linear-gradient(90deg, rgba(239, 68, 68, 0.08), transparent);
+}
+
+.explanation-title {
+  font-size: 0.82rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin-bottom: 0.5rem;
+  color: var(--text-primary);
+}
+
+.explanation-body {
+  font-size: 0.88rem;
+  line-height: 1.6;
+  color: var(--text-secondary);
+}
+
+/* Section 2: Visual Decision Reasoning Pipeline */
+.pipeline-section {
+  background: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  border-radius: 10px;
+  padding: 1.25rem;
+  margin-bottom: 1.5rem;
+}
+
+.section-title {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.85rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-primary);
+  margin-bottom: 1rem;
+  border-bottom: 1px solid var(--border-subtle);
+  padding-bottom: 0.5rem;
+}
+
+.pipeline-steps {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.pipeline-step-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.pipeline-node {
+  width: 100%;
+  display: grid;
+  grid-template-columns: 120px 140px 1fr;
+  align-items: center;
+  gap: 1rem;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-subtle);
+  border-radius: 8px;
+  padding: 0.6rem 1rem;
+  transition: border-color 0.2s;
+}
+
+.pipeline-node:hover {
+  border-color: var(--accent-blue);
+}
+
+.node-stage {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+}
+
+.node-status {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 0.2rem 0.5rem;
+  border-radius: 4px;
+  text-align: center;
+  background: var(--bg-tertiary);
+  color: var(--text-secondary);
+  border: 1px solid var(--border-subtle);
+}
+
+.pipeline-node.status-mismatch .node-status,
+.pipeline-node.status-anomaly .node-status,
+.pipeline-node.status-block .node-status,
+.pipeline-node.status-critical .node-status {
+  background: rgba(239, 68, 68, 0.15);
+  color: #fca5a5;
+  border-color: rgba(239, 68, 68, 0.4);
+}
+
+.pipeline-node.status-high .node-status,
+.pipeline-node.status-review .node-status,
+.pipeline-node.status-triggered .node-status {
+  background: rgba(245, 158, 11, 0.15);
+  color: #fcd34d;
+  border-color: rgba(245, 158, 11, 0.4);
+}
+
+.pipeline-node.status-aligned .node-status,
+.pipeline-node.status-normal .node-status,
+.pipeline-node.status-allow .node-status,
+.pipeline-node.status-low .node-status,
+.pipeline-node.status-evaluated_safe .node-status {
+  background: rgba(16, 185, 129, 0.15);
+  color: #6ee7b7;
+  border-color: rgba(16, 185, 129, 0.4);
+}
+
+.node-summary {
+  font-size: 0.82rem;
+  color: var(--text-secondary);
+}
+
+.pipeline-arrow {
+  color: var(--text-muted);
+  font-size: 0.85rem;
+  margin: 0.15rem 0;
+  user-select: none;
+}
+
+/* Section 3: Risk Factors Breakdown Table */
+.risk-factors-breakdown-card {
+  background: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  border-radius: 10px;
+  padding: 1.25rem;
+  margin-bottom: 1.5rem;
+}
+
+.risk-factors-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.risk-factors-header {
+  display: grid;
+  grid-template-columns: 200px 100px 1fr 80px;
+  gap: 0.75rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  padding: 0 0.5rem 0.4rem;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.risk-factor-row {
+  display: grid;
+  grid-template-columns: 200px 100px 1fr 80px;
+  gap: 0.75rem;
+  align-items: center;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-subtle);
+  border-radius: 6px;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.8rem;
+}
+
+.factor-severity {
+  font-size: 0.7rem;
+  font-weight: 700;
+  padding: 0.15rem 0.45rem;
+  border-radius: 4px;
+  text-align: center;
+  font-family: var(--font-mono);
+}
+
+.factor-severity.severity-critical,
+.factor-severity.severity-high {
+  background: rgba(239, 68, 68, 0.15);
+  color: #fca5a5;
+  border: 1px solid rgba(239, 68, 68, 0.3);
+}
+
+.factor-severity.severity-medium {
+  background: rgba(245, 158, 11, 0.15);
+  color: #fcd34d;
+  border: 1px solid rgba(245, 158, 11, 0.3);
+}
+
+.factor-severity.severity-low {
+  background: rgba(16, 185, 129, 0.15);
+  color: #6ee7b7;
+  border: 1px solid rgba(16, 185, 129, 0.3);
+}
+
+.factor-evidence {
+  font-size: 0.78rem;
+  color: var(--text-secondary);
+}
+
+.factor-impact {
+  font-family: var(--font-mono);
+  font-weight: 800;
+  color: #f87171;
+  text-align: right;
+  font-size: 0.85rem;
+}
+
+.risk-factors-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 0.5rem;
+  padding: 0.6rem 0.85rem;
+  background: var(--bg-tertiary);
+  border-radius: 6px;
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+.score-sum {
+  font-family: var(--font-mono);
+  font-weight: 800;
+  color: var(--text-primary);
+}
+
+.user-goal-box {
+  background: var(--bg-primary);
+  padding: 0.6rem 0.85rem;
+  border-radius: 6px;
+  border: 1px solid var(--border-subtle);
+  font-style: italic;
+}
+
+.sim-output-pre {
+  background: var(--bg-primary);
+  padding: 0.75rem 1rem;
+  border-radius: 6px;
+  border: 1px solid var(--border-subtle);
+  font-size: 0.75rem;
+  font-family: var(--font-mono);
+  overflow-x: auto;
+  color: #93c5fd;
+}
+
+/* Security Intelligence Component Styles */
+.intel-metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 1rem;
+}
+
+.intel-metric-box {
+  background: var(--bg-primary);
+  border: 1px solid var(--border-subtle);
+  border-radius: 8px;
+  padding: 0.85rem 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.intel-metric-label {
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+}
+
+.intel-metric-value {
+  font-size: 1.1rem;
+  font-weight: 800;
+  font-family: var(--font-sans);
+  color: var(--text-primary);
+}
+
+.pattern-cards-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 1rem;
+}
+
+.pattern-card {
+  background: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.pattern-card.severity-high,
+.pattern-card.severity-critical {
+  border-left: 4px solid var(--color-block);
+  background: linear-gradient(90deg, rgba(239, 68, 68, 0.05), transparent);
+}
+
+.pattern-card.severity-medium {
+  border-left: 4px solid var(--color-review);
+  background: linear-gradient(90deg, rgba(245, 158, 11, 0.05), transparent);
+}
+
+.pattern-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.pattern-tag {
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.pattern-severity-badge {
+  font-size: 0.68rem;
+  font-weight: 800;
+  padding: 0.15rem 0.45rem;
+  border-radius: 4px;
+  font-family: var(--font-mono);
+}
+
+.pattern-severity-badge.high,
+.pattern-severity-badge.critical {
+  background: rgba(239, 68, 68, 0.2);
+  color: #fca5a5;
+}
+
+.pattern-severity-badge.medium {
+  background: rgba(245, 158, 11, 0.2);
+  color: #fcd34d;
+}
+
+.pattern-desc {
+  font-size: 0.82rem;
+  color: var(--text-secondary);
+  line-height: 1.4;
+}
+
+.pattern-evidence {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+  background: var(--bg-secondary);
+  padding: 0.4rem 0.6rem;
+  border-radius: 4px;
+}
+
+.no-patterns-badge {
+  background: rgba(16, 185, 129, 0.1);
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  color: #6ee7b7;
+  padding: 0.75rem 1rem;
+  border-radius: 8px;
+  font-size: 0.82rem;
+  display: flex;
+  align-items: center;
+}
+
+@media (max-width: 700px) {
+  .pipeline-node {
+    grid-template-columns: 1fr;
+    gap: 0.25rem;
+  }
+  .risk-factors-header,
+  .risk-factor-row {
+    grid-template-columns: 1fr;
+    gap: 0.25rem;
+  }
+  .factor-impact {
+    text-align: left;
+  }
+}
+

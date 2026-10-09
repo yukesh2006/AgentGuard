@@ -6,7 +6,7 @@ Intercepts AI agent tool action proposals, validates against security policies,
 and returns safe sandboxed simulation results.
 """
 
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, HTTPException, Query, status
 from app.models.interception import InterceptionRequest, InterceptionResponse
 from app.services.interceptor import get_agent_interceptor
 
@@ -26,7 +26,10 @@ router = APIRouter(tags=["Agent Interception"])
     summary="Alias for /intercept",
     include_in_schema=False,
 )
-def intercept_agent_action(payload: InterceptionRequest) -> InterceptionResponse:
+def intercept_agent_action(
+    payload: InterceptionRequest,
+    include_trace: bool = Query(default=False, description="Optionally include Phase 7 Explainable AI Decision Trace"),
+) -> InterceptionResponse:
     """
     Intercept an action proposed by an autonomous AI agent, evaluate it
     against AgentGuard's intent-action consistency, behavioral anomaly detection,
@@ -38,7 +41,7 @@ def intercept_agent_action(payload: InterceptionRequest) -> InterceptionResponse
     interceptor = get_agent_interceptor()
 
     try:
-        return interceptor.intercept(payload)
+        return interceptor.intercept(payload, include_trace=include_trace)
     except ValueError as exc:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,

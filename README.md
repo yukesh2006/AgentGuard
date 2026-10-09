@@ -28,9 +28,9 @@ Based on these dimensions, AgentGuard produces one of three enforceable decision
 
 ## Current Phase
 
-**Phase 6 — Persistent Audit Logging & Security Dashboard**
+**Phase 7 — Explainable AI Decision Trace + Security Intelligence**
 
-> **Current Status**: AgentGuard features an enterprise-grade SQLite persistent audit log and a real-time React + Vite SOC Security Dashboard. Every intercepted AI agent action is automatically persisted, sanitized, and exposed via REST APIs (`/audit/*`). Security operators can monitor traffic, inspect explanations, analyze risk distributions, and test actions live via the in-dashboard Agent Action Simulator.  
+> **Current Status**: AgentGuard features an end-to-end Explainable AI Decision Trace and proactive Security Intelligence layer. Every security decision is fully explainable as a transparent 7-stage chain of evidence (`INTENT` → `ACTION` → `CONSISTENCY` → `BEHAVIOR` → `RISK` → `POLICY` → `DECISION`). Security analysts can inspect plain-English explanations, audit exact active risk contributions (e.g., `+25` destructive action, `+20` anomaly), evaluate qualitative decision confidence, and detect correlated multi-event threat patterns.  
 > *Note: AgentGuard performs active security governance analysis and safe simulation only. It does NOT execute real external commands, file deletions, or network uploads.*
 
 ---
@@ -58,14 +58,27 @@ Policy Decision Engine (Phase 4)
        ↓               ↓               ↓
  ACTION RESULT     WAITING_FOR_REVIEW BLOCKED
        ↓
- AUTOMATIC AUDIT LOGGER (Phase 6)
-       ↓ (Sanitization & Redaction)
+ EXPLANATION ENGINE (Phase 7)
+ ├─ Decision Trace & 7-Stage Reasoning Chain
+ ├─ Active Risk Factor Contributions (+25, +20...)
+ ├─ Plain-English Natural Language Justifications
+ └─ Qualitative Decision Confidence (HIGH / MEDIUM / LOW)
+       ↓
+ AUTOMATIC SANITIZED AUDIT LOGGER (Phase 6)
+       ↓
  SQLITE AUDIT DATABASE (`database/agentguard.db`)
        ↓
-┌──────────────────────────────┬──────────────────────────────┐
-│       AUDIT REST APIs        │   REACT + VITE SOC DASHBOARD │
-│  /audit/events, /audit/stats │   Live Metrics, Charts, Sim  │
-└──────────────────────────────┴──────────────────────────────┘
+ SECURITY INTELLIGENCE SERVICE & THREAT DETECTOR (Phase 7)
+ ├─ Pattern: Repeated Blocked Actions
+ ├─ Pattern: Repeated External Transfers
+ ├─ Pattern: Repeated Credential Access Attempts
+ ├─ Pattern: Multi-Action Escalation
+ └─ Intelligence Summaries & Risk Distributions
+       ↓
+┌──────────────────────────────────────┬──────────────────────────────┐
+│        REST & EXPLAINABILITY APIs    │   REACT + VITE SOC DASHBOARD │
+│  /explain/{id}, /security/intel, ... │   Live Visual Decision Trace │
+└──────────────────────────────────────┴──────────────────────────────┘
 ```
 
 ### Security Boundary Principle
@@ -189,6 +202,70 @@ AgentGuard/
 
 ---
 
+## Phase 7 — Explainable AI Decision Trace & Security Intelligence
+
+AgentGuard provides full interpretability for every firewall decision. Rather than presenting black-box verdicts or opaque scores, AgentGuard delivers a transparent, verifiable chain of evidence:
+
+### 1. 7-Stage Decision Reasoning Chain
+Every interception event traces through a 7-stage analytical pipeline:
+1. **INTENT**: Analyzes the user's primary prompt and intent classification.
+2. **ACTION**: Evaluates the normalized tool action proposed by the autonomous agent.
+3. **CONSISTENCY**: Measures semantic cosine similarity and consistency level (`HIGH`, `MEDIUM`, `LOW`, or `MISMATCH`).
+4. **BEHAVIOR**: Detects statistical behavioral sequence anomalies via IsolationForest.
+5. **RISK**: Evaluates multi-factor contributions and computes an aggregate score (0–100).
+6. **POLICY**: Matches deterministic enterprise guardrails (e.g. `DESTRUCTIVE_ACTION_PREVENTION`, `CRITICAL_RISK_BLOCK`).
+7. **DECISION**: Enforces the triad verdict (`ALLOW`, `REVIEW`, or `BLOCK`).
+
+### 2. Concrete Example: Explaining a Blocked Action
+```text
+USER INTENT
+Prepare project report
+    ↓
+ACTION
+Delete project file
+    ↓
+INTENT-ACTION CONSISTENCY
+MISMATCH
+    ↓
+RISK
+HIGH (70.0/100)
+    ↓
+POLICY
+DESTRUCTIVE_ACTION_PREVENTION
+    ↓
+DECISION
+BLOCK
+    ↓
+REASON
+Action does not align with the requested reporting task.
+```
+
+### 3. Active Risk Factor Contributions
+The dashboard and API expose only the active contributors directly affecting the evaluated score:
+* `DESTRUCTIVE_ACTION` (+25) — Action attempts deletion or truncation.
+* `EXTERNAL_TRANSFER` (+25) — Outbound data transmission to external destination.
+* `SYSTEM_COMMAND` (+25) — Prohibited shell or command execution.
+* `SENSITIVE_RESOURCE_ACCESS` (+25) — Credential or protected file target.
+* `BEHAVIORAL_ANOMALY` (+20) — Unusual tool invocation trajectory.
+* `INTENT_ACTION_MISMATCH` (+15) — Divergence from user objective.
+
+### 4. Qualitative Decision Confidence
+AgentGuard displays a qualitative confidence badge (`HIGH`, `MEDIUM`, or `LOW`):
+> *"Decision confidence represents the completeness and consistency of AgentGuard's available signals. It is not a calibrated probability of safety."*
+* **HIGH**: Clear intent, recognizable action semantics, and deterministic policy rule match.
+* **MEDIUM**: Mixed signals or legitimate action on ambiguous resource requiring human review.
+* **LOW**: Insufficient context or unrecognized custom operations.
+
+### 5. Multi-Event Threat Pattern Detection
+The rule-based `ThreatPatternDetector` correlates audit logs to identify enterprise attack patterns:
+* `REPEATED_BLOCKED_ACTIONS` — Multiple blocked attempts in current session.
+* `REPEATED_EXTERNAL_TRANSFERS` — Repeated exfiltration attempts to external endpoints.
+* `REPEATED_CREDENTIAL_ACCESS` — Suspicious credential file scanning attempts.
+* `MULTIPLE_HIGH_RISK_ACTIONS` — Clustering of high/critical risk events.
+* `ESCALATION_PATTERN` — Progression from routine file inspection to privileged system execution.
+
+---
+
 ## Running the Backend
 
 Follow these steps to set up and run the AgentGuard backend locally:
@@ -238,7 +315,9 @@ The interactive documentation will be available at:
 * Intent Analysis: `POST http://127.0.0.1:8000/analyze`
 * Risk Assessment: `POST http://127.0.0.1:8000/risk-assessment`
 * Policy Decision: `POST http://127.0.0.1:8000/policy-decision` (or alias `POST http://127.0.0.1:8000/decision`)
-* Agent Interception: `POST http://127.0.0.1:8000/intercept` (or alias `POST http://127.0.0.1:8000/agent/intercept`)
+* Agent Interception: `POST http://127.0.0.1:8000/intercept` (with optional `?include_trace=true`)
+* Decision Explainability: `GET http://127.0.0.1:8000/explain/{interception_id}`
+* Security Intelligence: `GET http://127.0.0.1:8000/security/intelligence`
 * Audit Event Logs: `GET http://127.0.0.1:8000/audit/events`
 * Audit Statistics: `GET http://127.0.0.1:8000/audit/stats`
 * Policy Analytics: `GET http://127.0.0.1:8000/audit/policies`
@@ -262,7 +341,7 @@ Open [http://localhost:5173/](http://localhost:5173/) in your browser to view th
 
 ## Running the Automated Tests
 
-To run the complete automated test suite across all Phase 1 through Phase 6 components (56 automated tests):
+To run the complete automated test suite across all Phase 1 through Phase 7 components (70 automated tests):
 
 ```powershell
 .\venv\Scripts\pytest.exe backend/tests/ -v

@@ -29,10 +29,11 @@ class AgentInterceptor:
         self.policy_engine = get_policy_engine()
         self.simulator = SafeActionSimulator()
 
-    def intercept(self, payload: InterceptionRequest) -> InterceptionResponse:
+    def intercept(self, payload: InterceptionRequest, include_trace: bool = False) -> InterceptionResponse:
         """
         Intercept proposed action, evaluate security policies, and determine
         whether to simulate, wait for review, or block.
+        Optionally generates an explainable decision trace if include_trace is True.
         """
         # 1. Translate into policy evaluation request
         policy_req = PolicyDecisionRequest(
@@ -101,6 +102,35 @@ class AgentInterceptor:
             # Audit logging error should not break interception response in demo/edge environments
             pass
 
+        # 6. Optionally compile explainable AI Decision Trace
+        trace_dict = None
+        if include_trace:
+            try:
+                from app.services.explanation import get_explanation_engine
+                trace = get_explanation_engine().build_trace_from_context(
+                    interception_id=interception_id,
+                    timestamp=timestamp,
+                    user_goal=payload.user_request or "",
+                    action=policy_res.action or payload.agent_action or "",
+                    target_resource=policy_res.target_resource or payload.target_resource or "",
+                    decision=policy_res.decision.value,
+                    risk_score=policy_res.risk_score,
+                    risk_level=policy_res.risk_level,
+                    reason=policy_res.reason,
+                    triggered_policies=policy_res.triggered_policies,
+                    simulation_status=(
+                        sim_result["simulation_status"].value
+                        if hasattr(sim_result["simulation_status"], "value")
+                        else str(sim_result["simulation_status"])
+                    ),
+                    execution_permitted=sim_result["execution_permitted"],
+                    risk_result=risk_result,
+                    destination=payload.destination,
+                )
+                trace_dict = trace.model_dump()
+            except Exception:
+                trace_dict = None
+
         return InterceptionResponse(
             interception_id=interception_id,
             timestamp=timestamp,
@@ -120,6 +150,7 @@ class AgentInterceptor:
             review_status=review_status,
             anomaly_detected=anomaly_detected,
             simulation_output=sim_result.get("simulation_output"),
+            decision_trace=trace_dict,
         )
 
 

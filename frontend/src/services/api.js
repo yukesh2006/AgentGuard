@@ -64,8 +64,9 @@ export async function getPolicyStats() {
 /**
  * Intercept an AI agent's proposed action and simulate execution.
  */
-export async function interceptAction(payload) {
-  const res = await fetch(`${API_BASE}/intercept`, {
+export async function interceptAction(payload, includeTrace = true) {
+  const url = `${API_BASE}/intercept${includeTrace ? '?include_trace=true' : ''}`;
+  const res = await fetch(url, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -75,6 +76,28 @@ export async function interceptAction(payload) {
   if (!res.ok) {
     const errorData = await res.json().catch(() => ({}));
     throw new Error(errorData.detail || `Interception failed: ${res.statusText}`);
+  }
+  return res.json();
+}
+
+/**
+ * Fetch explainable AI decision trace for a specific interception ID.
+ */
+export async function getDecisionTrace(interceptionId) {
+  const res = await fetch(`${API_BASE}/explain/${interceptionId}`);
+  if (!res.ok) {
+    throw new Error(`Failed to fetch decision trace: ${res.statusText}`);
+  }
+  return res.json();
+}
+
+/**
+ * Fetch proactive security intelligence analytics and threat patterns.
+ */
+export async function getSecurityIntelligence() {
+  const res = await fetch(`${API_BASE}/security/intelligence`);
+  if (!res.ok) {
+    throw new Error(`Failed to fetch security intelligence: ${res.statusText}`);
   }
   return res.json();
 }

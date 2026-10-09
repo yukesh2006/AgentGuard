@@ -12,6 +12,8 @@ from app.api.risk import router as risk_router
 from app.api.decision import router as decision_router
 from app.api.intercept import router as intercept_router
 from app.api.audit import router as audit_router
+from app.api.explain import router as explain_router
+from app.api.intelligence import router as intelligence_router
 from app.database.database import init_db
 
 # Initialize FastAPI application instance
@@ -41,6 +43,8 @@ app.include_router(risk_router)
 app.include_router(decision_router)
 app.include_router(intercept_router)
 app.include_router(audit_router)
+app.include_router(explain_router)
+app.include_router(intelligence_router)
 
 
 # Global exception handler to prevent leaking raw tracebacks

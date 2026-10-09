@@ -1,7 +1,7 @@
 # AgentGuard Architecture Specification
 
-> **Phase 6 Status Document**  
-> *Status: Active Persistent Audit Logging & Security Dashboard*  
+> **Phase 7 Status Document**  
+> *Status: Active Explainable AI Decision Trace & Security Intelligence*  
 > *Note: Safe simulation only. Real commands, file deletions, and network transfers are strictly prohibited.*
 
 ---
@@ -394,7 +394,79 @@ A React + Vite frontend providing:
 
 ---
 
-## 10. Development Roadmap Across Phases
+## 10. Phase 7: Explainable AI Decision Trace & Security Intelligence Layer
+
+### 10.1. Explainability Layer Architecture
+
+```text
+INTERCEPTION (Phase 5 Gateway)
+      ↓
+INTENT ENGINE (Semantic Parsing & Cosine Similarity)
+      ↓
+CONTEXT ENGINE (Trajectory & Environment State)
+      ↓
+BEHAVIORAL ENGINE (IsolationForest Sequence Profiling)
+      ↓
+RISK ASSESSMENT ENGINE (Multi-Factor Scoring Engine 0-100)
+      ↓
+POLICY ENGINE (ALLOW / REVIEW / BLOCK Enforcement)
+      ↓
+DECISION (Enforced Triad Verdict & Containment Boundary)
+      ↓
+EXPLANATION ENGINE (Phase 7)
+├─ 7-Stage Decision Reasoning Chain
+├─ Active Risk Factor Dissection (+25, +20...)
+├─ Qualitative Decision Confidence (HIGH / MEDIUM / LOW)
+└─ Plain-English Justification Generation
+      ↓
+AUDIT REPOSITORY (Persistent SQLite Logging with Secret Masking)
+      ↓
+SECURITY INTELLIGENCE SERVICE & THREAT PATTERN DETECTOR
+├─ Cross-Event Behavioral Pattern Correlation
+└─ Aggregated Risk Trends & Anomaly Counts
+      ↓
+SOC SECURITY DASHBOARD (Phase 7)
+├─ Visual 7-Stage Pipeline Nodes
+├─ "Why This Risk Score?" Math Breakdown Table
+├─ "Why AgentGuard Took This Action" Decision Card
+└─ Correlated Threat Pattern Detection Badges
+```
+
+> **Crucial Architectural Constraint**: The Explainability Layer does **NOT** independently make security decisions. It operates downstream of the policy and risk assessment engines, extracting and structuring the exact mathematical contributions, semantic alignments, and rule activations that produced the verdict.
+
+### 10.2. Decision Trace Model (`DecisionTrace`)
+Every intercepted action produces a structured `DecisionTrace` containing:
+1. `interception_id`: Unique tracking identifier.
+2. `final_decision`: Triad verdict (`ALLOW`, `REVIEW`, `BLOCK`).
+3. `risk_score` and `risk_level`: Normalized composite risk metric.
+4. `decision_confidence`: Qualitative indicator of signal completeness.
+5. `intent_analysis`: Stated goal, classified intent, similarity score, consistency tier, and semantic explanation.
+6. `context_analysis`: Operational context summary, previous action count, and target resource category.
+7. `behavior_analysis`: Outlier flag, severity level, and behavioral trajectory rationale.
+8. `resource_analysis`: Target identifier, classification, and sensitivity tier.
+9. `risk_factors`: Active positive contributors only (e.g., `DESTRUCTIVE_ACTION` +25, `BEHAVIORAL_ANOMALY` +20).
+10. `policy_analysis`: Triggered policy rules and associated rationale.
+11. `reasoning_chain`: 7 discrete step models (`INTENT` → `ACTION` → `CONSISTENCY` → `BEHAVIOR` → `RISK` → `POLICY` → `DECISION`).
+12. `safety_action`: Safe simulation execution status and execution permission flag.
+
+### 10.3. Qualitative Decision Confidence
+AgentGuard provides a transparent qualitative confidence indicator (`HIGH`, `MEDIUM`, or `LOW`):
+* **HIGH**: Comprehensive context, recognizable action semantics, and deterministic policy rule triggers.
+* **MEDIUM**: Adequate signals present, but contextual ambiguity appropriately mandates human supervisor review.
+* **LOW**: Sparse context or unrecognized custom action parameters.
+* **Guiding Principle**: *"Decision confidence represents the completeness and consistency of AgentGuard's available signals. It is not a calibrated probability of safety."* (AgentGuard explicitly avoids fabricating pseudo-scientific percentages such as "98.7% safe").
+
+### 10.4. Multi-Event Threat Pattern Detection
+A lightweight rule-based detector operating on session history without heavy ML overhead:
+1. `REPEATED_BLOCKED_ACTIONS`: Flags sessions exhibiting recurring blocked actions.
+2. `REPEATED_EXTERNAL_TRANSFERS`: Flags recurrent outbound exfiltration requests.
+3. `REPEATED_CREDENTIAL_ACCESS`: Identifies scanning attempts against sensitive configuration/credential files.
+4. `MULTIPLE_HIGH_RISK_ACTIONS`: Flags clusters of high-severity actions within the audit window.
+5. `ESCALATION_PATTERN`: Flags trajectories progressing from benign file inspection to privileged system execution.
+
+---
+
+## 11. Development Roadmap Across Phases
 
 * **Phase 1 (Completed):** Foundational architecture, repository layout, baseline FastAPI endpoints, hygiene checks, and testing harness.
 * **Phase 2 (Completed):** Intent analyzer, action normalizer, context extraction, sentence embeddings (`all-MiniLM-L6-v2`), consistency analyzer, contextual security signals, and `/analyze` endpoint.
@@ -402,4 +474,6 @@ A React + Vite frontend providing:
 * **Phase 4 (Completed):** Context-Aware Policy Decision Engine (ALLOW, REVIEW, BLOCK), hierarchical rules, explainability recommendations, and `/policy-decision` endpoint.
 * **Phase 5 (Completed):** Agent Interception Layer, Safe Action Simulator, mock sandboxed outputs, audit events, and `/intercept` endpoint.
 * **Phase 6 (Completed):** Persistent SQLite audit database, automatic interception logging, audit REST APIs, and React + Vite SOC Security Dashboard.
-* **Phase 7 (Future):** Direct agent framework middleware plugins (LangChain, AutoGen, CrewAI) and distributed multi-tenant logging.
+* **Phase 7 (Completed):** Explainable AI Decision Trace, ExplanationEngine, 7-stage reasoning chain, active risk factor breakdown, qualitative decision confidence, threat pattern detection, `/explain/{id}`, and `/security/intelligence` APIs.
+* **Phase 8 (Future):** Direct agent framework middleware plugins (LangChain, AutoGen, CrewAI) and distributed multi-tenant logging.
+
