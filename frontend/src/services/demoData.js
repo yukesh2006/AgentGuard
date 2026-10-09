@@ -36,26 +36,54 @@ export const DEMO_POLICIES = {
 };
 
 export const DEMO_INTELLIGENCE = {
-  active_patterns_count: 2,
-  detected_patterns: [
+  summary: {
+    total_interceptions: 312,
+    total_blocked: 148,
+    total_blocked_actions: 148,
+    most_common_blocked_action: 'delete_project_file',
+    most_triggered_policy: 'DESTRUCTIVE_ACTION (86 triggers)',
+    most_common_high_risk_resource: 'core_database.db',
+    most_common_high_risk_resource_type: 'Database / Credentials',
+    anomalous_activity_count: 67,
+    average_risk_score: 36.2,
+  },
+  patterns: [
     {
-      pattern_type: 'REPEATED_BLOCKED_ATTEMPTS',
+      pattern: 'REPEATED_BLOCKED_ATTEMPTS',
       severity: 'HIGH',
       description: 'Multiple blocked destructive actions detected targeting production database assets.',
-      count: 14,
+      evidence_count: 14,
+      evidence: '14 consecutive policy blocks detected on *.db and credentials.json',
+      affected_resources: ['core_database.db', 'credentials.json'],
     },
     {
-      pattern_type: 'SENSITIVE_CREDENTIAL_PROBING',
+      pattern: 'SENSITIVE_CREDENTIAL_PROBING',
       severity: 'MEDIUM',
-      description: 'Repeated attempts to access environment configuration (.env) files.',
-      count: 8,
+      description: 'Repeated unauthorized attempts to access environment configuration (.env) and secret keys.',
+      evidence_count: 8,
+      evidence: '8 suspicious file read attempts targeting credentials.txt and .env',
+      affected_resources: ['credentials.txt', '.env'],
     },
   ],
-  recommendations: [
-    'Maintain strict Human-in-the-Loop policy for all .env and credential access.',
-    'Ensure destructive file deletion actions remain sandboxed.',
-    'Monitor outbound egress endpoints for unauthorized data exfiltration.',
+  top_policies: [
+    { policy: 'LOW_RISK_ALIGNED_ACTION', count: 109 },
+    { policy: 'DESTRUCTIVE_ACTION', count: 86 },
+    { policy: 'INTENT_ACTION_MISMATCH', count: 62 },
+    { policy: 'SENSITIVE_RESOURCE_ACCESS', count: 55 },
+    { policy: 'EXTERNAL_DATA_EXFILTRATION', count: 41 },
+    { policy: 'SYSTEM_COMMAND_EXECUTION', count: 21 },
   ],
+  risk_distribution: {
+    LOW: 109,
+    MEDIUM: 55,
+    HIGH: 124,
+    CRITICAL: 18,
+  },
+  decision_distribution: {
+    ALLOW: 109,
+    REVIEW: 55,
+    BLOCK: 148,
+  },
 };
 
 export const DEMO_EVENTS = [
