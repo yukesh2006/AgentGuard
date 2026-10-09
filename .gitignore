@@ -25,6 +25,15 @@ __pycache__/
 .env
 .env.local
 .env.*.local
+*.pem
+*.key
+service-account*.json
+credentials*.json
+
+# Firebase CLI
+.firebase/
+firebase-debug.log*
+firestore-debug.log*
 
 # Database & SQLite files
 *.db

@@ -1,0 +1,52 @@
+# ==============================================================================
+# AgentGuard - .dockerignore
+# Excludes unnecessary files from container build context to minimize image size
+# ==============================================================================
+
+# Version control
+.git/
+.gitignore
+
+# Python environments & caches
+venv/
+.venv/
+env/
+ENV/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+.coverage
+htmlcov/
+.cache/
+
+# Frontend (deployed separately via Firebase Hosting)
+frontend/
+node_modules/
+dist/
+build/
+
+# Local databases (re-initialized cleanly via init_db())
+*.db
+*.sqlite
+*.sqlite3
+database/*.db
+
+# Documentation & logs
+docs/
+logs/
+*.log
+
+# Firebase & local environment files
+.firebase/
+firebase-debug.log*
+.env
+.env.local
+.env.*.local
+
+# IDE & OS files
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db

@@ -3,6 +3,15 @@ AgentGuard - Context-Aware AI Intent Firewall
 Phase 6: Persistent Audit Logging & Security Dashboard
 """
 
+import os
+import sys
+from pathlib import Path
+
+# Ensure 'backend' directory is in sys.path when launched as backend.app.main:app
+BACKEND_DIR = Path(__file__).resolve().parent.parent
+if str(BACKEND_DIR) not in sys.path:
+    sys.path.insert(0, str(BACKEND_DIR))
+
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
@@ -26,14 +35,23 @@ app = FastAPI(
 # Initialize SQLite database schema
 init_db()
 
-# Enable CORS for local development and dashboard integration
-origins = settings.cors_origins + ["*"]
+# Enable CORS: strictly restricted to intended frontend origins
+cors_origins = [o for o in settings.cors_origins if o != "*"]
+allow_all = "*" in settings.cors_origins
+
+# Optional regex for wildcard Firebase domains (only when explicitly requested)
+origin_regex = os.getenv("CORS_ORIGIN_REGEX") or (
+    r"^https:\/\/.*\.web\.app$|^https:\/\/.*\.firebaseapp\.com$"
+    if os.getenv("CORS_ALLOW_ALL_FIREBASE", "false").lower() in ("true", "1")
+    else None
+)
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
+    allow_origins=["*"] if allow_all else cors_origins,
+    allow_origin_regex=origin_regex,
+    allow_credentials=not allow_all,
+    allow_methods=["GET", "POST", "OPTIONS"],
     allow_headers=["*"],
 )
 

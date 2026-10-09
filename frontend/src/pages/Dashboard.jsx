@@ -57,7 +57,7 @@ export default function Dashboard() {
       setError(null);
     } catch (err) {
       console.error('Failed to load dashboard data:', err);
-      setError('Unable to connect to AgentGuard backend. Verify FastAPI is running at http://127.0.0.1:8000.');
+      setError('Unable to connect to AgentGuard backend. Verify the FastAPI service is running and CORS is configured.');
     } finally {
       if (!isSilent) setLoading(false);
     }

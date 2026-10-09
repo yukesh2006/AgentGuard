@@ -1,11 +1,27 @@
 /**
  * AgentGuard Frontend API Service.
  * Centralized HTTP client communicating with FastAPI backend.
+ * Configured to use VITE_API_BASE_URL for cloud deployments.
  */
 
-const API_BASE = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
-  ? 'http://127.0.0.1:8000'
-  : '';
+const envApiBase = import.meta.env.VITE_API_BASE_URL;
+const isLocalhost = typeof window !== 'undefined' && (
+  window.location.hostname === 'localhost' ||
+  window.location.hostname === '127.0.0.1' ||
+  window.location.hostname === '[::1]'
+);
+
+const API_BASE = (envApiBase && envApiBase.trim() !== '')
+  ? envApiBase.replace(/\/+$/, '')
+  : (isLocalhost ? 'http://127.0.0.1:8000' : '');
+
+if (!API_BASE && !isLocalhost && typeof window !== 'undefined') {
+  console.warn(
+    '[AgentGuard] VITE_API_BASE_URL is not configured. Ensure VITE_API_BASE_URL is supplied during production build.'
+  );
+}
+
+
 
 /**
  * Fetch dashboard overview statistics.

@@ -346,3 +346,89 @@ To run the complete automated test suite across all Phase 1 through Phase 7 comp
 ```powershell
 .\venv\Scripts\pytest.exe backend/tests/ -v
 ```
+
+---
+
+## Phase 8 — Google Cloud & Firebase Deployment
+
+AgentGuard is fully configured for zero-friction cloud deployment using Google tools exclusively:
+* **Backend:** Google Cloud Run (containerized FastAPI microservice with CPU-optimized PyTorch).
+* **Frontend:** Firebase Hosting (high-speed global CDN for the React/Vite dashboard SPA).
+* **Monitoring & Administration:** Google Cloud Console.
+
+### 1. Architecture
+
+```text
+┌────────────────────────────┐              ┌────────────────────────────┐
+│      Firebase Hosting      │              │      Google Cloud Run      │
+│     (React / Vite SPA)     │ ── CORS ───> │     (FastAPI Backend)      │
+│  https://*.web.app         │   HTTPS      │  https://*-run.app         │
+└────────────────────────────┘              └────────────────────────────┘
+```
+
+### 2. Prerequisites & Setup (PowerShell)
+
+Install the Google Cloud SDK and Firebase CLI if not already present:
+
+```powershell
+# 1. Install Google Cloud SDK (or via installer from https://cloud.google.com/sdk/docs/install)
+winget install Google.CloudSDK
+
+# 2. Install Firebase CLI via npm
+npm install -g firebase-tools
+
+# 3. Authenticate with Google
+gcloud auth login
+gcloud config set project YOUR_PROJECT_ID
+
+# 4. Authenticate Firebase
+firebase login
+```
+
+### 3. Deploy Backend to Google Cloud Run
+
+From the project root `Y:\AgentGuard`:
+
+```powershell
+# Enable Cloud Run and Artifact Registry APIs
+gcloud services enable run.googleapis.com artifactregistry.googleapis.com
+
+# Deploy backend using source-based build (uses root Dockerfile)
+gcloud run deploy agentguard-backend `
+  --source . `
+  --region us-central1 `
+  --platform managed `
+  --allow-unauthenticated `
+  --memory 1Gi `
+  --cpu 1 `
+  --set-env-vars "CORS_ORIGINS=https://YOUR_FIREBASE_APP.web.app"
+```
+
+Save the generated Cloud Run Service URL (e.g., `https://agentguard-backend-xyz.a.run.app`).
+
+### 4. Build and Deploy Frontend to Firebase Hosting
+
+```powershell
+# Set backend URL and build frontend production bundle
+$env:VITE_API_BASE_URL="https://agentguard-backend-xyz.a.run.app"
+cd frontend
+npm run build
+cd ..
+
+# Deploy to Firebase Hosting
+firebase deploy --only hosting
+```
+
+### 5. Verification Commands
+
+```powershell
+# Test Cloud Run Health
+curl -f https://agentguard-backend-xyz.a.run.app/health
+
+# Test Root Info
+curl https://agentguard-backend-xyz.a.run.app/
+
+# Open your live Firebase Hosting URL in browser
+Start-Process "https://YOUR_FIREBASE_APP.web.app"
+```
+
