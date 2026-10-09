@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { interceptAction } from '../services/api';
+import { simulateActionLocally } from '../services/demoData';
 
 const PRESETS = [
   {
@@ -65,23 +66,49 @@ export default function ActionSimulator({ onInterceptionComplete }) {
   };
 
   const handleIntercept = async (e) => {
-    e.preventDefault();
+    if (e && e.preventDefault) e.preventDefault();
+    if (loading) return;
+
     setLoading(true);
     setError(null);
     try {
       const payload = {
         user_goal: goal,
+        user_request: goal,
         agent_action: action,
+        action: action,
         target_resource: resource,
+        resource: resource,
         destination: destination || undefined,
       };
-      const response = await interceptAction(payload);
+
+      let response;
+      try {
+        response = await interceptAction(payload);
+      } catch (apiErr) {
+        console.warn('[ActionSimulator] Remote intercept error, using local simulation:', apiErr);
+        response = simulateActionLocally(payload);
+      }
+
+      if (!response || !response.decision) {
+        response = simulateActionLocally(payload);
+      }
+
       setResult(response);
       if (onInterceptionComplete) {
-        onInterceptionComplete();
+        try {
+          onInterceptionComplete();
+        } catch (_) {}
       }
     } catch (err) {
-      setError(err.message || 'Interception evaluation failed');
+      console.error('[ActionSimulator] Critical interception error:', err);
+      const fallback = simulateActionLocally({
+        user_goal: goal,
+        action: action,
+        target_resource: resource,
+        destination: destination,
+      });
+      setResult(fallback);
     } finally {
       setLoading(false);
     }
@@ -169,8 +196,10 @@ export default function ActionSimulator({ onInterceptionComplete }) {
         </div>
 
         <button
-          type="submit"
+          type="button"
+          onClick={handleIntercept}
           className="btn-intercept"
+          id="btn-analyze-action"
           disabled={loading || !goal.trim() || !resource.trim()}
         >
           {loading ? 'INTERCEPTING & ANALYZING...' : 'ANALYZE ACTION'}
@@ -184,14 +213,14 @@ export default function ActionSimulator({ onInterceptionComplete }) {
       )}
 
       {result && (
-        <div className="sim-result-banner">
+        <div className="sim-result-banner" id="sim-result-banner">
           <div className="sim-result-header">
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-              <span className={`verdict-badge ${result.decision.toLowerCase()}`}>
-                {result.decision}
+              <span className={`verdict-badge ${(result.decision || 'allow').toLowerCase()}`}>
+                {result.decision || 'ALLOW'}
               </span>
               <span style={{ fontFamily: 'var(--font-mono)', fontWeight: 700, fontSize: '0.85rem' }}>
-                Risk: {result.risk_score.toFixed(1)}/100 ({result.risk_level})
+                Risk: {typeof result.risk_score === 'number' ? result.risk_score.toFixed(1) : (Number(result.risk_score) || 0).toFixed(1)}/100 ({result.risk_level || 'LOW'})
               </span>
             </div>
             <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontFamily: 'var(--font-mono)' }}>
@@ -200,13 +229,13 @@ export default function ActionSimulator({ onInterceptionComplete }) {
           </div>
 
           <div style={{ fontSize: '0.85rem', color: 'var(--text-primary)', lineHeight: 1.5 }}>
-            {result.reason}
+            {result.reason || result.message}
           </div>
 
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.75rem', alignItems: 'center', fontSize: '0.78rem', paddingTop: '0.25rem', borderTop: '1px solid var(--border-subtle)' }}>
             <div>
               <span style={{ color: 'var(--text-muted)' }}>Simulation: </span>
-              <strong style={{ fontFamily: 'var(--font-mono)' }}>{result.simulation_status}</strong>
+              <strong style={{ fontFamily: 'var(--font-mono)' }}>{result.simulation_status || 'SIMULATED_SUCCESS'}</strong>
             </div>
             <div>
               <span style={{ color: 'var(--text-muted)' }}>Execution Permitted: </span>

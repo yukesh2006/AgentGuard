@@ -204,9 +204,9 @@ export const DEMO_EVENTS = [
 ];
 
 export function simulateActionLocally(payload) {
-  const goal = (payload.user_goal || '').toLowerCase();
-  const action = payload.action || 'read_project_file';
-  const resource = payload.target_resource || 'document.txt';
+  const goal = (payload.user_goal || payload.user_request || '').toLowerCase();
+  const action = payload.action || payload.agent_action || 'read_project_file';
+  const resource = payload.target_resource || payload.resource || 'document.txt';
   const destination = payload.destination || 'local';
 
   let decision = 'ALLOW';
